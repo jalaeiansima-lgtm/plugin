@@ -4,180 +4,197 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;600;700;800&display=swap">
 <style>
-/* Layout: control rail on the right (brand, date, pages, slicers) + 12-column card grid, Power BI style on deep navy */
+/* Layout: neon control rail on the right (brand, date, pages, slicers) + one-screen board:
+   header · KPI strip · 4×3 grid of chart tiles, one tile per Excel sheet, fitted to the viewport like a Power BI page */
 :root{
-  --bg:#0a1238; --rail:#0c1644; --panel:#121d55; --panel-2:#1a2870; --field:#0d1747;
-  --line:rgba(150,170,255,.14); --grid:rgba(150,170,255,.10); --track:rgba(220,228,255,.16);
-  --ink:#f3f5ff; --ink-2:#bcc5ec; --ink-3:#8b96cc;
-  --c1:#e8409a; --c2:#11a3c6; --c3:#e8623f; --c4:#8a63f0; --c5:#26ad73; --neutral:#6470a8;
-  --good:#3fd394; --warn:#ff9a52; --bad:#ff6178; --info:#6fb7ff;
-  --tip:#070c2b; --on-accent:#ffffff;
+  --bg:#0b0418; --glow-a:rgba(150,60,255,.28); --glow-b:rgba(255,60,190,.14);
+  --rail:rgba(18,6,40,.94); --panel:rgba(31,12,64,.80); --panel-solid:#1a0b36; --panel-2:#2b1354; --field:#13072a;
+  --line:rgba(192,107,255,.24); --line-strong:rgba(214,140,255,.62); --grid:rgba(205,160,255,.10); --track:rgba(225,195,255,.14);
+  --ink:#f7f0ff; --ink-2:#d2bdf2; --ink-3:#9f88c9;
+  --c1:#c06bff; --c2:#25d6f2; --c3:#ff5ac8; --c4:#6a7dff; --c5:#36e0a0; --neutral:#7d6aa6;
+  --good:#4ff0b0; --warn:#ffa25c; --bad:#ff5f7e; --info:#8bbcff;
+  --tip:#12052a; --on-accent:#ffffff;
+  --tile-glow:0 0 0 1px rgba(192,107,255,.10) inset,0 0 24px rgba(160,70,255,.16);
+  --neon-text:0 0 4px rgba(255,255,255,.55),0 0 12px #ff5ac8,0 0 26px #c06bff;
   --f-display:'Lalezar','Vazirmatn',Tahoma,sans-serif;
   --f-body:'Vazirmatn',Tahoma,'Segoe UI',sans-serif;
-  --r:12px;
+  --r:14px;
   color-scheme:dark;
 }
-html[data-skin="plum"]{
-  --bg:#150a2b; --rail:#1a0d36; --panel:#22123f; --panel-2:#2e1955; --field:#1a0d33;
-  --line:rgba(205,160,255,.15); --grid:rgba(205,160,255,.10); --track:rgba(240,225,255,.16);
-  --ink:#f8f2ff; --ink-2:#d2c2ec; --ink-3:#a08cc6; --neutral:#7a6aa0; --tip:#0d0620;
-  color-scheme:dark;
+html[data-skin="navy"]{
+  --bg:#060b2c; --glow-a:rgba(70,90,255,.26); --glow-b:rgba(255,60,190,.12);
+  --rail:rgba(8,14,52,.94); --panel:rgba(16,26,82,.80); --panel-solid:#101a52; --panel-2:#1b2a78; --field:#0b1442;
+  --line:rgba(120,150,255,.26); --line-strong:rgba(150,175,255,.6); --grid:rgba(160,180,255,.10); --track:rgba(210,220,255,.14);
+  --ink:#f2f5ff; --ink-2:#c3cdf2; --ink-3:#8c98cc; --neutral:#6874a8; --tip:#060b2c;
+  --tile-glow:0 0 0 1px rgba(120,150,255,.10) inset,0 0 24px rgba(80,110,255,.16);
 }
-html[data-skin="ocean"]{
-  --bg:#06202b; --rail:#072631; --panel:#0b2f3d; --panel-2:#123f50; --field:#082633;
-  --line:rgba(140,220,255,.15); --grid:rgba(140,220,255,.10); --track:rgba(220,245,255,.16);
-  --ink:#effbff; --ink-2:#b5d7e4; --ink-3:#7fa9ba; --neutral:#5d8494; --tip:#03141b;
-  color-scheme:dark;
+html[data-skin="midnight"]{
+  --bg:#050309; --glow-a:rgba(190,60,255,.16); --glow-b:rgba(37,214,242,.08);
+  --rail:rgba(12,8,22,.96); --panel:rgba(20,13,36,.86); --panel-solid:#140d24; --panel-2:#22163c; --field:#0c0816;
+  --line:rgba(192,107,255,.20); --line-strong:rgba(214,140,255,.55); --grid:rgba(205,160,255,.08); --track:rgba(225,195,255,.12);
+  --tile-glow:0 0 0 1px rgba(192,107,255,.08) inset,0 0 30px rgba(170,70,255,.12);
 }
-html[data-skin="light"]{
-  --bg:#eef1fa; --rail:#14205e; --panel:#ffffff; --panel-2:#f2f4fc; --field:#f7f8fd;
-  --line:rgba(20,32,94,.12); --grid:rgba(20,32,94,.08); --track:rgba(20,32,94,.10);
-  --ink:#121a45; --ink-2:#3b4677; --ink-3:#6b7499; --neutral:#9aa3c4; --tip:#121a45;
-  --c1:#d6338a; --c2:#0b8fb0; --c3:#d9542f; --c4:#7650e0; --c5:#1f9a64;
-  --good:#16935f; --warn:#c2631c; --bad:#cf2f48; --info:#2f6fd6;
-  color-scheme:light;
-}
-html,body{background:var(--bg)}
-body{margin:0;font-family:var(--f-body);color:var(--ink);font-size:14px;line-height:1.55}
+html,body{height:100%}
+html{background:var(--bg)}
+body{margin:0;font-family:var(--f-body);color:var(--ink);font-size:14px;line-height:1.55;
+  background:radial-gradient(1100px 620px at 88% -8%,var(--glow-a),transparent 62%),radial-gradient(900px 560px at -6% 108%,var(--glow-b),transparent 60%),var(--bg);background-attachment:fixed}
 *{box-sizing:border-box}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--c2);outline-offset:2px}
 .num,td.num{font-variant-numeric:tabular-nums}
+svg{display:block}
 
-#app{direction:rtl;display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
+#app{direction:rtl;display:grid;grid-template-columns:232px minmax(0,1fr);height:100%}
 
 /* ---------- rail ---------- */
-.rail{background:var(--rail);color:#f3f5ff;padding:22px 16px 28px;display:flex;flex-direction:column;gap:20px;position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow-y:auto;border-inline-start:1px solid var(--line)}
-html[data-skin="light"] .rail{--ink-2:#c8cff0;--ink-3:#97a1d0;--panel:#1d2b78;--line:rgba(255,255,255,.12)}
-.brand{font-family:var(--f-display);font-size:40px;line-height:1;letter-spacing:0;color:#fff;margin:0}
-.brand small{display:block;font-family:var(--f-body);font-size:12px;font-weight:500;color:var(--ink-3);margin-top:8px}
-.today{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-.today b{display:block;font-size:15px}
-.today span{font-size:12px;color:var(--ink-3)}
+.rail{background:var(--rail);padding:20px 14px 24px;display:flex;flex-direction:column;gap:18px;height:100%;overflow-y:auto;border-inline-start:1px solid var(--line);box-shadow:-8px 0 30px rgba(120,40,220,.12)}
+.brand{font-family:var(--f-display);font-weight:400;font-size:42px;line-height:1;color:#fff;margin:0;text-shadow:var(--neon-text)}
+.brand small{display:block;font-family:var(--f-body);font-size:11.5px;font-weight:500;color:var(--ink-3);margin-top:10px;text-shadow:none;line-height:1.6}
+.today{border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:var(--panel)}
+.today b{display:block;font-size:14px}
+.today span{font-size:11.5px;color:var(--ink-3)}
 .nav{display:flex;flex-direction:column;gap:2px}
-.nav a{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;color:var(--ink-2);text-decoration:none;font-weight:500}
-.nav a:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav a[aria-current="page"]{background:var(--c1);color:var(--on-accent)}
-.nav .badge{font-size:11px;min-width:22px;text-align:center;padding:0 6px;border-radius:999px;background:rgba(255,255,255,.12)}
-.nav .badge.alert{background:var(--bad);color:#fff}
+.nav a{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 12px;border-radius:9px;color:var(--ink-2);text-decoration:none;font-weight:500;border:1px solid transparent}
+.nav a:hover{background:rgba(192,107,255,.10);color:#fff}
+.nav a[aria-current="page"]{color:#fff;border-color:var(--line-strong);background:linear-gradient(90deg,rgba(255,90,200,.20),rgba(192,107,255,.32));box-shadow:0 0 14px rgba(192,107,255,.35)}
+.nav .badge{font-size:11px;min-width:22px;text-align:center;padding:0 6px;border-radius:999px;background:rgba(255,255,255,.10)}
+.nav .badge.alert{background:var(--bad);color:#fff;box-shadow:0 0 10px var(--bad)}
 .slicers{display:flex;flex-direction:column;gap:14px}
 .slicer h4{display:flex;justify-content:space-between;font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--ink-3);margin:0 0 6px}
 .slicer h4 button{background:none;border:0;color:var(--ink-3);cursor:pointer;font-size:11px;padding:0}
 .slicer h4 button:hover{color:#fff}
-.opt{display:flex;justify-content:space-between;align-items:center;width:100%;padding:6px 10px;margin-bottom:3px;border-radius:6px;background:var(--panel);border:1px solid transparent;color:var(--ink-2);cursor:pointer;text-align:right;font-size:13px}
-.opt:hover{border-color:var(--line);color:#fff}
-.opt[aria-pressed="true"]{background:var(--c1);color:var(--on-accent)}
-.opt .n{font-size:11px;opacity:.8}
+.opt{display:flex;justify-content:space-between;align-items:center;width:100%;padding:5px 10px;margin-bottom:3px;border-radius:7px;background:rgba(192,107,255,.07);border:1px solid var(--line);color:var(--ink-2);cursor:pointer;text-align:right;font-size:12.5px}
+.opt:hover{border-color:var(--line-strong);color:#fff}
+.opt[aria-pressed="true"]{color:#fff;border-color:transparent;background:linear-gradient(90deg,#ff5ac8,#c06bff);box-shadow:0 0 12px rgba(255,90,200,.45)}
+.opt .n{font-size:11px;opacity:.85}
 
 /* ---------- main ---------- */
-main{min-width:0;padding-block:22px 48px;padding-inline:24px}
-.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
-.topbar h1{margin:0;font-size:22px;font-weight:800;text-wrap:balance}
+main{min-width:0;height:100%;overflow-y:auto;padding-block:16px 28px;padding-inline:20px}
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.topbar h1{margin:0;font-size:20px;font-weight:800;text-wrap:balance}
+.topbar .meta{display:flex;flex-wrap:wrap;gap:6px;margin-inline-end:auto;margin-inline-start:12px}
 .topbar .actions{display:flex;flex-wrap:wrap;gap:8px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:-8px 0 16px}
-.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);font-size:12px;color:var(--ink-2)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 12px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:12px;color:var(--ink-2)}
 .chip button{background:none;border:0;color:var(--ink-3);cursor:pointer;padding:0;font-size:13px;line-height:1}
-.banner{background:color-mix(in srgb,var(--warn) 16%,var(--panel));border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);color:var(--ink);padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13px}
+.banner{background:color-mix(in srgb,var(--warn) 14%,var(--panel-solid));border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);color:var(--ink);padding:10px 14px;border-radius:10px;margin-bottom:12px;font-size:13px}
 
-.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:500;white-space:nowrap;text-decoration:none}
-.btn:hover{border-color:color-mix(in srgb,var(--ink) 30%,transparent)}
-.btn.primary{background:var(--c1);border-color:transparent;color:var(--on-accent)}
-.btn.primary:hover{filter:brightness(1.08)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 13px;border-radius:9px;cursor:pointer;font-weight:500;white-space:nowrap;text-decoration:none;font-size:13px}
+.btn:hover{border-color:var(--line-strong);box-shadow:0 0 12px rgba(192,107,255,.25)}
+.btn.primary{background:linear-gradient(90deg,#ff5ac8,#c06bff);border-color:transparent;color:var(--on-accent);box-shadow:0 0 14px rgba(255,90,200,.35)}
+.btn.primary:hover{filter:brightness(1.08);box-shadow:0 0 20px rgba(255,90,200,.55)}
 .btn.ghost{background:transparent}
 .btn.danger{background:transparent;color:var(--bad);border-color:color-mix(in srgb,var(--bad) 50%,transparent)}
 .btn.danger.armed{background:var(--bad);color:#fff}
-.btn.sm{padding:3px 10px;font-size:12px}
+.btn.sm{padding:2px 10px;font-size:12px}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
+.icon-btn{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--ink-3);cursor:pointer;text-decoration:none}
+.icon-btn:hover{color:#fff;border-color:var(--line);background:rgba(192,107,255,.12)}
+.icon-btn svg{width:14px;height:14px}
 
-.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px;grid-auto-flow:row dense}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px 16px;min-width:0}
-.card>h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 12px;font-size:13px;font-weight:700;color:var(--ink-2)}
-.card>h3 small{font-weight:400;font-size:11px;color:var(--ink-3)}
-.card .foot{margin-top:8px;font-size:11px;color:var(--ink-3)}
-.s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s12{grid-column:1/-1}
+/* ---------- one-screen board ---------- */
+.dash{display:flex;flex-direction:column;gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.kpi{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;min-width:0;box-shadow:var(--tile-glow);text-decoration:none;color:inherit}
+.kpi .l{font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .l i{width:7px;height:7px;border-radius:50%;background:var(--k,var(--c1));box-shadow:0 0 8px var(--k,var(--c1));flex:none}
+.kpi .v{font-size:24px;font-weight:800;line-height:1.25;margin-top:2px;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 14px color-mix(in srgb,var(--k,var(--c1)) 70%,transparent);white-space:nowrap}
+.kpi .v small{font-size:11.5px;font-weight:500;color:var(--ink-3);margin-inline-start:4px;text-shadow:none}
+.kpi .s{font-size:11.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+a.kpi:hover{border-color:var(--line-strong)}
 
-/* KPI tiles */
-.kpis{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;min-width:0}
-.kpi .l{font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:6px}
-.kpi .l i{width:8px;height:8px;border-radius:2px;background:var(--k,var(--c1));display:inline-block}
-.kpi .v{font-size:26px;font-weight:800;line-height:1.25;margin-top:4px;font-variant-numeric:tabular-nums}
-.kpi .v small{font-size:12px;font-weight:500;color:var(--ink-3);margin-inline-start:4px}
-.kpi .s{font-size:12px;color:var(--ink-2);margin-top:2px}
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;grid-auto-rows:300px}
+.tile{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px 10px;box-shadow:var(--tile-glow);container-type:inline-size}
+.tile::before{content:"";position:absolute;inset:-1px -1px auto -1px;height:2px;border-radius:var(--r) var(--r) 0 0;background:linear-gradient(90deg,transparent,var(--tc,var(--c1)),transparent);opacity:.85}
+.tile>header{display:flex;align-items:center;gap:6px;min-height:24px}
+.tile h3{margin:0;font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;max-width:100%}
+.tile .sub{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
+.tile .tools{display:flex;gap:2px;margin-inline-start:auto;flex:none}
+.tile .sheet{font-size:10.5px;color:var(--ink-3);border:1px solid var(--line);border-radius:999px;padding:0 7px;white-space:nowrap;flex:none}
+.tile .ilg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--ink-2);margin-top:2px}
+.tile .ilg span{display:inline-flex;align-items:center;gap:5px}
+.tile .ilg i{width:8px;height:8px;border-radius:2px;box-shadow:0 0 6px currentColor}
+.tile .body{flex:1;min-height:0;position:relative;margin-top:6px;display:flex;gap:10px;align-items:stretch}
+.tile .note{font-size:10.5px;color:var(--ink-3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cv{position:relative;flex:1;min-width:0;min-height:0}
+.cv canvas{position:absolute;inset:0}
+.cv .center{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;text-align:center}
+.cv .center b{display:block;font-size:clamp(11px,5.2cqw,16px);font-weight:800;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 12px rgba(255,90,200,.7)}
+.cv .center span{display:block;font-size:10.5px;color:var(--ink-3)}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--ink-3);font-size:12.5px;text-align:center;padding:8px;border:1px dashed var(--line);border-radius:10px}
+.empty .row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+
+/* html legend beside donuts */
+.lg{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0;flex:0 1 46%;font-size:11.5px}
+.lg li{display:grid;grid-template-columns:9px minmax(0,1fr) auto auto;align-items:center;gap:6px}
+.lg i{width:9px;height:9px;border-radius:3px;box-shadow:0 0 7px var(--lc)}
+.lg span{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg b{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+.lg em{font-style:normal;color:var(--ink-3);font-size:10.5px;font-variant-numeric:tabular-nums;min-width:2.4em;text-align:left}
+@container (max-width:330px){.tile .sheet{display:none}.lg b{display:none}.lg{flex-basis:42%}}
+@container (max-width:190px){.tile .body.split{flex-direction:column}.lg{flex:none;gap:2px}}
 
 /* rings */
-.rings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center}
-.ring{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px}
-.ring .dial{position:relative;width:92px;height:92px}
-.ring .dial b{position:absolute;inset:0;display:grid;place-items:center;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
-.ring span{font-size:12px;font-weight:600;color:var(--ink)}
-.ring small{font-size:11px;color:var(--ink-3)}
-
-/* progress bars */
-.bars{display:flex;flex-direction:column;gap:14px}
-.pb .row{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:5px}
-.pb .row span{color:var(--ink-2);display:inline-flex;align-items:center;gap:6px}
-.pb .row span i{width:8px;height:8px;border-radius:2px;background:var(--c)}
-.pb .row b{font-variant-numeric:tabular-nums}
-.pbar{height:14px;border-radius:7px;background:var(--track);overflow:hidden}
-.pbar>i{display:block;height:100%;border-radius:7px;background:var(--c);min-width:0}
-.mini{display:inline-block;width:64px;height:6px;border-radius:3px;background:var(--track);vertical-align:middle;overflow:hidden;margin-inline-end:6px}
-.mini>i{display:block;height:100%;background:var(--c1);border-radius:3px}
-
-/* today list */
-.kv{display:flex;flex-direction:column}
-.kv div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
-.kv div:last-child{border-bottom:0}
-.kv span{color:var(--ink-2)}
-.kv b{font-variant-numeric:tabular-nums}
-.big-date{font-size:20px;font-weight:800;margin-bottom:6px}
-
-/* charts */
-.chart{position:relative;height:230px}
-.chart.tall{height:270px}
-.chart .center{position:absolute;inset:0 0 34px 0;display:grid;place-items:center;pointer-events:none;text-align:center}
-.chart .center b{display:block;font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
-.chart .center span{font-size:11px;color:var(--ink-3)}
-.chart .empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-3);font-size:13px;text-align:center;padding:12px}
+.rings{flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;align-items:center;text-align:center}
+.ring{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0}
+.ring .dial{position:relative;width:min(96px,100%);aspect-ratio:1;max-width:100%}
+.ring .dial svg{width:100%;height:100%;overflow:visible}
+.ring .dial b{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(13px,4.6cqw,19px);font-weight:800;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 10px var(--rc)}
+.ring span{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap}
+.ring small{font-size:10.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
 /* pills */
 .pill{display:inline-flex;align-items:center;gap:4px;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;border:1px solid transparent;color:var(--ink-2);background:var(--panel-2)}
-.pill.good{color:var(--good);background:color-mix(in srgb,var(--good) 13%,transparent);border-color:color-mix(in srgb,var(--good) 30%,transparent)}
-.pill.warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 13%,transparent);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
-.pill.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 13%,transparent);border-color:color-mix(in srgb,var(--bad) 35%,transparent)}
-.pill.info{color:var(--info);background:color-mix(in srgb,var(--info) 13%,transparent);border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.pill.good{color:var(--good);background:color-mix(in srgb,var(--good) 13%,transparent);border-color:color-mix(in srgb,var(--good) 32%,transparent)}
+.pill.warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 13%,transparent);border-color:color-mix(in srgb,var(--warn) 32%,transparent)}
+.pill.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 13%,transparent);border-color:color-mix(in srgb,var(--bad) 38%,transparent)}
+.pill.info{color:var(--info);background:color-mix(in srgb,var(--info) 13%,transparent);border-color:color-mix(in srgb,var(--info) 32%,transparent)}
 
 /* tables */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px 16px;min-width:0;box-shadow:var(--tile-glow)}
+.card>h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 12px;font-size:13px;font-weight:700;color:var(--ink-2)}
 .tbl-block{margin-bottom:16px}
 .tbl-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
-.tbl-bar h3{margin:0;font-size:15px;font-weight:700;margin-inline-end:auto;display:flex;align-items:center;gap:8px}
+.tbl-bar h3{margin:0;font-size:15px;font-weight:700;margin-inline-end:auto;display:flex;align-items:center;gap:8px;color:var(--ink)}
 .tbl-bar h3 .count{font-size:12px;font-weight:500;color:var(--ink-3)}
-.search{background:var(--field);border:1px solid var(--line);border-radius:8px;padding:6px 12px;width:220px;max-width:100%}
+.search{background:var(--field);border:1px solid var(--line);border-radius:9px;padding:6px 12px;width:220px;max-width:100%}
 .tbl-scroll{overflow-x:auto;border-radius:8px}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{position:sticky;top:0;background:var(--panel);text-align:right;color:var(--ink-3);font-weight:600;font-size:12px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;user-select:none}
+th{position:sticky;top:0;background:var(--panel-solid);text-align:right;color:var(--ink-3);font-weight:600;font-size:12px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;user-select:none}
 th[data-sort]{cursor:pointer}
 th[data-sort]:hover{color:var(--ink)}
 th .dir{font-size:10px;margin-inline-start:4px}
 td{padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
 tbody tr{cursor:pointer}
-tbody tr:hover td{background:var(--panel-2)}
+tbody tr:hover td{background:rgba(192,107,255,.08)}
 td.note{white-space:normal;min-width:180px;max-width:320px;color:var(--ink-3);font-size:12px}
 td.muted,.muted{color:var(--ink-3)}
 td .name{font-weight:600}
 tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 .empty-row td{text-align:center;color:var(--ink-3);padding:24px;cursor:default}
+.mini{display:inline-block;width:64px;height:6px;border-radius:3px;background:var(--track);vertical-align:middle;overflow:hidden;margin-inline-end:6px}
+.mini>i{display:block;height:100%;background:linear-gradient(90deg,#ff5ac8,#c06bff);border-radius:3px;box-shadow:0 0 6px #c06bff}
 
 /* modal */
-.modal-bg{position:fixed;inset:0;background:rgba(3,6,24,.62);display:grid;place-items:center;padding:16px;z-index:40}
-.modal{direction:rtl;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;width:min(780px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:20px 22px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.modal-bg{position:fixed;inset:0;background:rgba(6,2,16,.66);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;z-index:40}
+.modal{direction:rtl;background:var(--panel-solid);color:var(--ink);border:1px solid var(--line-strong);border-radius:16px;width:min(780px,100%);max-height:calc(100% - 32px);overflow:auto;padding:20px 22px;box-shadow:0 0 40px rgba(170,70,255,.35),0 20px 60px rgba(0,0,0,.5)}
+.modal.max{width:min(1180px,100%);height:min(760px,calc(100% - 32px));display:flex;flex-direction:column}
+.modal.max .tile{flex:1;box-shadow:none;border:0;background:transparent;padding:0}
+.modal.max .tile h3{font-size:18px}
+.modal.max .lg{font-size:14px;gap:9px}
+.modal.max .cv .center b{font-size:26px}
+.modal.max .ring .dial{width:min(190px,100%)}
+.modal.max .ring .dial b{font-size:30px}
+.modal.max .ring span{font-size:15px}
+.modal.max .ring small{font-size:12.5px}
 .modal h2{margin:0 0 4px;font-size:18px}
 .modal .sub{color:var(--ink-3);font-size:12px;margin:0 0 16px}
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
 .field{min-width:0}
 .field.wide{grid-column:1/-1}
 .field label{display:block;font-size:12px;color:var(--ink-3);margin-bottom:4px}
-.field input,.field select,.field textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--ink)}
+.field input,.field select,.field textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:9px;padding:8px 10px;color:var(--ink)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--line-strong);box-shadow:0 0 10px rgba(192,107,255,.3)}
 .field textarea{resize:vertical;min-height:70px}
 .field input[readonly]{opacity:.7}
 .field .hint{font-size:11px;color:var(--ink-3);margin-top:3px;min-height:1em}
@@ -199,39 +216,51 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 .set-grid .card p{color:var(--ink-2);font-size:13px;margin:0 0 12px}
 .skins{display:flex;flex-wrap:wrap;gap:10px}
 .skin{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);cursor:pointer}
-.skin[aria-pressed="true"]{border-color:var(--c1);box-shadow:0 0 0 1px var(--c1)}
+.skin[aria-pressed="true"]{border-color:var(--c3);box-shadow:0 0 12px rgba(255,90,200,.45)}
 .skin i{width:14px;height:14px;border-radius:4px;display:inline-block}
-.toggles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}
+.toggles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 14px}
 .toggles label{display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer}
 .counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
 .counts div{background:var(--panel-2);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--ink-3)}
 .counts b{display:block;color:var(--ink);font-size:16px}
 .welcome{max-width:560px;margin:8vh auto;text-align:center}
-.drop{border:2px dashed var(--line);border-radius:14px;padding:36px 20px;margin-top:18px;background:var(--panel)}
-.drop.over{border-color:var(--c1)}
+.drop{display:block;border:2px dashed var(--line-strong);border-radius:16px;padding:36px 20px;margin-top:18px;background:var(--panel);cursor:pointer;box-shadow:var(--tile-glow)}
+.drop.over{border-color:var(--c3);box-shadow:0 0 24px rgba(255,90,200,.4)}
 .drop p{color:var(--ink-2)}
 
-.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--tip);color:#fff;border:1px solid var(--line);padding:10px 16px;border-radius:10px;z-index:60;display:flex;gap:12px;align-items:center;direction:rtl;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:calc(100% - 32px)}
-.toast button{background:none;border:0;color:#ff9ccf;cursor:pointer;font-weight:700}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--tip);color:#fff;border:1px solid var(--line-strong);padding:10px 16px;border-radius:12px;z-index:60;display:flex;gap:12px;align-items:center;direction:rtl;box-shadow:0 0 24px rgba(170,70,255,.35);max-width:calc(100% - 32px)}
+.toast button{background:none;border:0;color:#ff9ce0;cursor:pointer;font-weight:700}
 
-@media (max-width:1280px){
+/* presentation mode: board only, full screen */
+#app.present{grid-template-columns:minmax(0,1fr)}
+#app.present .rail,#app.present .topbar .actions .edit-act{display:none}
+
+/* one-screen fit on desktop-sized windows */
+@media (min-width:1100px) and (min-height:600px){
+  main.fit{overflow:hidden;display:flex;flex-direction:column;padding-block:14px}
+  main.fit .dash{flex:1;min-height:0}
+  main.fit .board{flex:1;min-height:0;grid-template-rows:repeat(var(--rows,3),minmax(0,1fr));grid-auto-rows:minmax(0,1fr)}
+}
+@media (max-width:1280px){.kpi .v{font-size:20px}}
+@media (max-width:1099px){
   .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .s3{grid-column:span 6}.s4{grid-column:span 6}.s5,.s7{grid-column:1/-1}
+  .board{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:290px}
 }
 @media (max-width:900px){
-  #app{grid-template-columns:minmax(0,1fr)}
-  .rail{position:static;height:auto;border-inline-start:0;border-bottom:1px solid var(--line);padding-inline:16px}
+  html,body{height:auto}
+  #app{display:block;height:auto}
+  .rail{height:auto;border-inline-start:0;border-bottom:1px solid var(--line);padding-inline:16px}
   .nav{flex-direction:row;flex-wrap:wrap}
   .slicers{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-  main{padding-inline:16px}
-  .grid>*{grid-column:1/-1}
+  main{height:auto;overflow:visible;padding-inline:16px}
   .set-grid{grid-template-columns:minmax(0,1fr)}
   .form-grid{grid-template-columns:minmax(0,1fr)}
   .fin{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .toggles{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-@media (max-width:520px){
+@media (max-width:620px){
+  .board{grid-template-columns:minmax(0,1fr);grid-auto-rows:280px}
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .kpi .v{font-size:21px}
   .toggles,.counts{grid-template-columns:minmax(0,1fr)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -442,9 +471,9 @@ const SCHEMA = {
 const ENTS = Object.keys(SCHEMA);
 
 /* ================= storage ================= */
-const KEY_DATA = 'mahd-dashboard.v1.data', KEY_PREFS = 'mahd-dashboard.v1.prefs';
+const KEY_DATA = 'mahd-dashboard.v1.data', KEY_PREFS = 'mahd-dashboard.v2.prefs';
 let DB = null, META = {}, STORAGE_OK = true;
-let PREFS = { skin: 'navy', hidden: {}, filters: { cls: [], group: [], attendance: [] } };
+let PREFS = { skin: 'neon', hidden: {}, filters: { cls: [], group: [], attendance: [] } };
 const UI = { search: {}, sort: {} };
 function load() {
   try {
@@ -675,196 +704,297 @@ function colsFor(ent) {
 }
 const DEFAULT_SORT = { payments: { k: 'date', dir: -1 }, installments: { k: 'left', dir: 1 }, salaries: { k: 'date', dir: -1 }, expenses: { k: 'date', dir: -1 } };
 
-/* ================= charts ================= */
+/* ================= charts (neon) ================= */
 const charts = {};
-function destroyCharts() { for (const k in charts) { try { charts[k].destroy(); } catch (e) {} delete charts[k]; } }
+function destroyCharts(prefix) { for (const k in charts) { if (prefix && !k.startsWith(prefix)) continue; try { charts[k].destroy(); } catch (e) {} delete charts[k]; } }
 function tok() {
   const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
-  return { ink: g('--ink'), ink2: g('--ink-2'), ink3: g('--ink-3'), grid: g('--grid'), panel: g('--panel'), tip: g('--tip'), neutral: g('--neutral'), c: [g('--c1'), g('--c2'), g('--c3'), g('--c4'), g('--c5')] };
+  return { ink: g('--ink'), ink2: g('--ink-2'), ink3: g('--ink-3'), grid: g('--grid'), panelSolid: g('--panel-solid'), lineStrong: g('--line-strong'), tip: g('--tip'), neutral: g('--neutral'), c: [g('--c1'), g('--c2'), g('--c3'), g('--c4'), g('--c5')] };
+}
+const FONT = () => getComputedStyle(document.body).fontFamily;
+function alpha(hex, a) {
+  let h = String(hex).trim().replace('#', ''); if (h.length === 3) h = h.split('').map(x => x + x).join('');
+  const n = parseInt(h, 16); if (isNaN(n)) return hex;
+  return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
+}
+const vGrad = (color, lo = .25) => ctx => { const ch = ctx.chart, a = ch.chartArea; if (!a) return color; const g = ch.ctx.createLinearGradient(0, a.bottom, 0, a.top); g.addColorStop(0, alpha(color, lo)); g.addColorStop(1, color); return g; };
+const hGrad = (color, lo = .25) => ctx => { const ch = ctx.chart, a = ch.chartArea; if (!a) return color; const g = ch.ctx.createLinearGradient(a.right, 0, a.left, 0); g.addColorStop(0, alpha(color, lo)); g.addColorStop(1, color); return g; };
+const lineGrad = (c1, c2) => ctx => { const ch = ctx.chart, a = ch.chartArea; if (!a) return c2; const g = ch.ctx.createLinearGradient(a.left, 0, a.right, 0); g.addColorStop(0, c2); g.addColorStop(1, c1); return g; };
+const areaGrad = color => ctx => { const ch = ctx.chart, a = ch.chartArea; if (!a) return alpha(color, .2); const g = ch.ctx.createLinearGradient(0, a.top, 0, a.bottom); g.addColorStop(0, alpha(color, .45)); g.addColorStop(1, alpha(color, 0)); return g; };
+
+/* neon glow behind every dataset, and value labels at bar tips */
+const neonGlow = {
+  id: 'neonGlow',
+  beforeDatasetDraw(chart, args, o) { if (!o || !o.blur) return; const ds = chart.data.datasets[args.index], c = chart.ctx; c.save(); c.shadowBlur = o.blur; c.shadowColor = ds.glow || 'rgba(192,107,255,.7)'; },
+  afterDatasetDraw(chart, args, o) { if (!o || !o.blur) return; chart.ctx.restore(); },
+};
+const valueLabels = {
+  id: 'valueLabels',
+  afterDatasetsDraw(chart, args, o) {
+    if (!o || !o.on) return;
+    const c = chart.ctx, hz = chart.options.indexAxis === 'y', sets = chart.data.datasets, last = sets.length - 1;
+    c.save(); c.font = `600 ${o.size || 11}px ${FONT()}`; c.fillStyle = o.color; c.shadowBlur = 0;
+    sets.forEach((ds, di) => {
+      if (o.stackTotal && di !== last) return;
+      const meta = chart.getDatasetMeta(di); if (meta.hidden) return;
+      meta.data.forEach((el, i) => {
+        const v = o.stackTotal ? sets.reduce((a, d, k) => a + (chart.getDatasetMeta(k).hidden ? 0 : (+d.data[i] || 0)), 0) : +ds.data[i];
+        if (!v) return;
+        const txt = o.fmt ? o.fmt(v, i) : faNum(v);
+        if (hz) { c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillText(txt, el.x - 6, el.y); }
+        else { c.textAlign = 'center'; c.textBaseline = 'bottom'; c.fillText(txt, el.x, el.y - 4); }
+      });
+    });
+    c.restore();
+  },
+};
+let CHART_READY = false;
+function setChartDefaults() {
+  if (!window.Chart) return false;
+  if (!CHART_READY) { Chart.register(neonGlow, valueLabels); CHART_READY = true; }
+  const t = tok(); Chart.defaults.font.family = FONT(); Chart.defaults.font.size = 11; Chart.defaults.color = t.ink2;
+  return true;
+}
+function tipOpts(t, o = {}) {
+  const hz = !!o.horizontal;
+  return { rtl: true, textDirection: 'rtl', backgroundColor: t.tip, titleColor: '#fff', bodyColor: '#eadcff', borderColor: t.lineStrong, borderWidth: 1, padding: 10, boxPadding: 4, usePointStyle: true,
+    callbacks: { label: ctx => {
+      const v = o.arc ? ctx.parsed : ctx.parsed[hz ? 'x' : 'y'];
+      let s = ` ${o.arc ? ctx.label : (ctx.dataset.label || '')}: ${o.money ? full(v) + ' تومان' : faNum(v) + (o.unit ? ' ' + o.unit : '')}`;
+      if (o.arc) { const tt = ctx.dataset.data.reduce((a, b) => a + (+b || 0), 0); s += ` (${faNum(Math.round(pct(v, tt) * 100))}٪)`; }
+      return s;
+    } } };
 }
 function baseOpts(t, o = {}) {
-  const hz = !!o.horizontal, isMoney = !!o.money;
-  const fmtV = v => isMoney ? money(v) : faNum(v);
-  const valueAxis = { beginAtZero: true, stacked: !!o.stacked, grid: { color: t.grid, drawTicks: false }, border: { display: false }, ticks: { color: t.ink3, callback: fmtV, maxTicksLimit: 5, padding: 6, precision: 0 } };
-  const catAxis = { stacked: !!o.stacked, grid: { display: false }, border: { color: t.grid }, ticks: { color: t.ink2, padding: 4, autoSkip: true, maxRotation: 0 } };
+  const hz = !!o.horizontal;
+  const tickV = o.millions ? (v => faNum(+(v / 1e6).toFixed(Math.abs(v) < 1e7 && v % 1e6 ? 1 : 0))) : (v => faNum(v));
+  const valueAxis = { beginAtZero: true, stacked: !!o.stacked, grace: o.grace || '8%', grid: { color: t.grid, drawTicks: false }, border: { display: false }, ticks: { color: t.ink3, callback: tickV, maxTicksLimit: 4, padding: 6, precision: 0, font: { size: 10.5 } } };
+  const catAxis = { stacked: !!o.stacked, grid: { display: false }, border: { color: t.grid }, ticks: { color: t.ink2, padding: 4, autoSkip: true, autoSkipPadding: 10, maxRotation: 0, font: { size: 11 }, ...(o.xTicks ? { maxTicksLimit: o.xTicks } : {}) } };
   return {
-    responsive: true, maintainAspectRatio: false, animation: { duration: reduceMotion ? 0 : 450 },
-    indexAxis: hz ? 'y' : 'x', interaction: { mode: 'nearest', intersect: !!o.intersect, axis: hz ? 'y' : 'x' },
+    responsive: true, maintainAspectRatio: false, animation: { duration: reduceMotion ? 0 : 550 },
+    indexAxis: hz ? 'y' : 'x', interaction: { mode: 'index', intersect: false, axis: hz ? 'y' : 'x' },
+    layout: { padding: { top: o.labels && !hz ? 16 : 4, left: 2, right: 2, bottom: 0 } },
     plugins: {
-      legend: { display: !!o.legend, position: 'bottom', rtl: true, textDirection: 'rtl', labels: { color: t.ink2, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 10, boxHeight: 10, padding: 14 } },
-      tooltip: { rtl: true, textDirection: 'rtl', backgroundColor: t.tip, titleColor: '#fff', bodyColor: '#e6eaff', borderColor: t.grid, borderWidth: 1, padding: 10, boxPadding: 4, usePointStyle: true,
-        callbacks: { label: ctx => { const v = ctx.parsed[hz ? 'x' : 'y']; return ` ${ctx.dataset.label ? ctx.dataset.label + ': ' : ''}${isMoney ? full(v) + ' تومان' : faNum(v)}`; } } },
+      legend: { display: false },
+      tooltip: tipOpts(t, o),
+      neonGlow: { blur: o.blur ?? 12 },
+      valueLabels: o.labels ? { on: true, color: t.ink2, fmt: o.labelFmt, stackTotal: !!o.stacked } : { on: false },
     },
     scales: hz ? { x: { ...valueAxis, reverse: true }, y: { ...catAxis, position: 'right' } } : { x: { ...catAxis, reverse: true }, y: { ...valueAxis, position: 'right' } },
   };
 }
-const barDs = (label, data, color, extra = {}) => ({ label, data, backgroundColor: color, hoverBackgroundColor: color, borderRadius: 4, borderSkipped: 'start', maxBarThickness: 30, categoryPercentage: .72, barPercentage: .86, ...extra });
-function donut(id, labels, values, colors, t, isMoney) {
-  mk(id, { type: 'doughnut', data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: t.panel, borderWidth: 2, hoverOffset: 4 }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: '64%', animation: { duration: reduceMotion ? 0 : 450 },
-      plugins: { legend: { position: 'bottom', rtl: true, textDirection: 'rtl', labels: { color: t.ink2, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 10, boxHeight: 10, padding: 12 } },
-        tooltip: { rtl: true, textDirection: 'rtl', backgroundColor: t.tip, borderColor: t.grid, borderWidth: 1, padding: 10, usePointStyle: true,
-          callbacks: { label: ctx => { const tot = ctx.dataset.data.reduce((a, b) => a + b, 0); return ` ${ctx.label}: ${isMoney ? full(ctx.parsed) + ' تومان' : faNum(ctx.parsed)} (${faNum(Math.round(pct(ctx.parsed, tot) * 100))}٪)`; } } } } } });
+const barDs = (label, data, color, bg, extra = {}) => ({ label, data, backgroundColor: bg || color, hoverBackgroundColor: color, borderRadius: 6, borderSkipped: 'start', maxBarThickness: 34, categoryPercentage: .72, barPercentage: .86, glow: color, ...extra });
+function donutCfg(t, labels, values, colors, o = {}) {
+  return { type: o.pie ? 'pie' : 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, hoverBackgroundColor: colors, borderColor: t.panelSolid, borderWidth: 2, hoverOffset: 6, glow: 'rgba(200,110,255,.75)' }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: o.pie ? 0 : '70%', animation: { duration: reduceMotion ? 0 : 550 }, layout: { padding: 10 },
+      plugins: { legend: { display: false }, tooltip: tipOpts(t, { arc: true, money: o.money, unit: o.unit }), neonGlow: { blur: 14 }, valueLabels: { on: false } } } };
 }
 function mk(id, cfg) {
-  const el = document.getElementById(id); if (!el || !window.Chart) return;
+  const el = document.getElementById(id); if (!el || !window.Chart || !cfg) return;
   if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(el, cfg);
+  try { charts[id] = new Chart(el, cfg); } catch (e) { const box = el.closest('.body'); if (box) box.innerHTML = '<div class="empty">نمایش این نمودار ممکن نشد.</div>'; }
 }
-function chartBox(id, opts = {}) {
-  if (opts.empty) return `<div class="chart${opts.tall ? ' tall' : ''}"><div class="empty">${opts.empty}</div></div>`;
-  if (!window.Chart) return `<div class="chart"><div class="empty">کتابخانه‌ی نمودار بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.</div></div>`;
-  return `<div class="chart${opts.tall ? ' tall' : ''}"><canvas id="${id}" role="img" aria-label="${esc(opts.label || '')}"></canvas>${opts.center ? `<div class="center">${opts.center}</div>` : ''}</div>`;
+const lgHtml = (items, fmt) => { const tot = sum(items, x => x.v); return `<ul class="lg">${items.map(x => `<li style="--lc:${x.c}"><i style="background:${x.c}"></i><span title="${esc(x.l)}">${esc(x.l)}</span><b>${fmt(x.v)}</b><em>${faNum(Math.round(pct(x.v, tot) * 100))}٪</em></li>`).join('')}</ul>`; };
+const ilg = items => `<div class="ilg">${items.map(x => `<span style="color:${x.c}"><i style="background:${x.c}"></i><span style="color:var(--ink-2)">${esc(x.l)}</span></span>`).join('')}</div>`;
+
+/* ================= rings ================= */
+let RING_N = 0;
+function ringSvg(p, c1, c2) {
+  const id = 'rg' + (++RING_N), r = 40, C = 2 * Math.PI * r, len = Math.max(0, Math.min(1, p)) * C;
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>`
+    + `<circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--track)" stroke-width="9"/>`
+    + (len > 0.5 ? `<circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#${id})" stroke-width="9" stroke-linecap="round" stroke-dasharray="${len.toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 50 50)" style="filter:drop-shadow(0 0 5px ${c1})"/>` : '')
+    + '</svg>';
+}
+function ring(p, c1, c2, label, sub) {
+  const n = faNum(Math.round(p * 100));
+  return `<div class="ring" style="--rc:${c1}" role="img" aria-label="${esc(label)} ${n} درصد"><div class="dial">${ringSvg(p, c1, c2)}<b>${n}٪</b></div><span>${esc(label)}</span><small>${sub}</small></div>`;
 }
 
-/* ================= dashboard ================= */
-const WIDGETS = [
-  { id: 'kpis', l: 'کارت‌های خلاصه' },
-  { id: 'rings', l: 'شاخص‌های کلیدی' },
-  { id: 'progress', l: 'وضعیت تعهد شهریه' },
-  { id: 'today', l: 'امروز' },
-  { id: 'daily', l: 'دریافتی روزانه' },
-  { id: 'dues', l: 'سررسید چک و اقساط' },
-  { id: 'category', l: 'دریافتی به تفکیک دسته' },
+/* ================= dashboard: one chart per Excel sheet, all on one screen ================= */
+const TILE_LIST = [
+  { id: 'kpis', l: 'کارت‌های خلاصه (بالای صفحه)' },
+  { id: 'trend', l: 'روند دریافت‌ها' },
+  { id: 'category', l: 'دریافت به تفکیک دسته' },
   { id: 'method', l: 'روش دریافت' },
+  { id: 'rings', l: 'شاخص‌های کلیدی' },
   { id: 'classes', l: 'کودکان هر کلاس' },
-  { id: 'staff', l: 'پرسنل' },
   { id: 'ageAtt', l: 'گروه سنی و نوع حضور' },
-  { id: 'remaining', l: 'بیشترین مانده شهریه' },
-  { id: 'upcoming', l: 'فهرست سررسیدهای نزدیک' },
+  { id: 'services', l: 'خدمات جانبی' },
+  { id: 'tuition', l: 'ترکیب تعهد شهریه' },
+  { id: 'dues', l: 'سررسید چک و اقساط' },
+  { id: 'tariffs', l: 'تعرفه‌ها' },
+  { id: 'staff', l: 'پرسنل و حقوق' },
+  { id: 'costs', l: 'هزینه‌ها و حقوق ماهانه' },
 ];
 const shown = id => !PREFS.hidden[id];
-function ringSvg(p, color) {
-  const r = 38, C = 2 * Math.PI * r, len = Math.max(0, Math.min(1, p)) * C;
-  return `<svg viewBox="0 0 92 92" width="92" height="92" aria-hidden="true"><circle cx="46" cy="46" r="${r}" fill="none" stroke="var(--track)" stroke-width="9"/>${len > 0.5 ? `<circle cx="46" cy="46" r="${r}" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${len.toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 46 46)"/>` : ''}</svg>`;
-}
-function ring(p, color, label, sub) {
-  return `<div class="ring" role="img" aria-label="${esc(label)} ${faNum(Math.round(p * 100))} درصد"><div class="dial">${ringSvg(p, color)}<b>${faNum(Math.round(p * 100))}٪</b></div><span>${esc(label)}</span><small>${sub}</small></div>`;
-}
-function pbar(label, value, total, color) {
-  const p = pct(value, total);
-  return `<div class="pb" style="--c:${color}"><div class="row"><span><i></i>${esc(label)}</span><b><bdi>${money(value)}</bdi> <span class="muted">·</span> <bdi>${faNum(Math.round(p * 100))}٪</bdi></b></div><div class="pbar" role="img" aria-label="${esc(label)} ${faNum(Math.round(p * 100))} درصد"><i style="width:${(p * 100).toFixed(1)}%"></i></div></div>`;
-}
+const ICON_EDIT = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10.8 2.7l2.5 2.5-7.6 7.6H3.2v-2.5z"/></svg>';
+const ICON_MAX = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>';
 
-function renderDashboard(main) {
-  const S = scope(), t = tok(), C = t.c;
-  const active = S.kids.filter(isActive);
+function dashModel() {
+  const S = scope(), active = S.kids.filter(isActive);
   const tot = { expected: 0, received: 0, scheduled: 0, unscheduled: 0, remaining: 0 };
   for (const c of active) { const f = fin(c.id); for (const k in tot) tot[k] += f[k]; }
-  const monthKey = TODAY.slice(0, 7);
-  const datedPays = S.payments.filter(p => jdnOf(p.date) != null);
-  const monthPays = sum(S.payments.filter(p => String(p.date || '').startsWith(monthKey)), p => p.amount);
-  const todayPays = S.payments.filter(p => p.date === TODAY);
+  tot.collected = tot.expected - tot.remaining;
+  const todayPays = S.payments.filter(p => normDate(p.date) === TODAY);
   const staffActive = DB.staff.filter(s => !s.status || same(s.status, 'فعال'));
   const pend = S.installments.filter(i => isPending(i.status));
-  const overdue = pend.filter(i => { const d = jdnOf(i.due); return d != null && d < TODAY_JDN; });
-  const soon = pend.filter(i => { const d = jdnOf(i.due); return d != null && d >= TODAY_JDN && d - TODAY_JDN <= 7; });
-
-  const insReq = active.filter(c => !same(c.insurance, 'معاف') && !isExempt(c)), insGot = insReq.filter(c => same(c.insurance, 'دریافت شد'));
-  const chkReq = active.filter(c => { const s = norm(c.checkStatus); return norm(c.payMode).includes(norm('چک')) && !s.startsWith(norm('لازم')) && !s.includes(norm('نمی‌دهد')); });
-  const chkGot = chkReq.filter(c => norm(c.checkStatus).startsWith(norm('تحویل داده')));
-  const noPay = active.filter(c => fin(c.id).expected > 0 && fin(c.id).received === 0);
-  const att = ATT.map(a => active.filter(c => same(c.attendance, a)).length);
-  const roles = uniq(staffActive.map(s => s.role));
-
-  const W = [];
-  if (shown('kpis')) W.push(`<div class="kpis">
-    <div class="kpi" style="--k:${C[0]}"><div class="l"><i></i>کودکان فعال</div><div class="v">${faNum(active.length)}</div><div class="s">${faNum(att[0])} هرروز · ${faNum(att[1])} یک‌روزدرمیان</div></div>
-    <div class="kpi" style="--k:${C[3]}"><div class="l"><i></i>پرسنل فعال</div><div class="v">${faNum(staffActive.length)}</div><div class="s">${roles.slice(0, 2).map(r => `${faNum(staffActive.filter(s => same(s.role, r)).length)} ${esc(r)}`).join(' · ') || '—'}</div></div>
-    <div class="kpi" style="--k:${C[1]}"><div class="l"><i></i>تعهد شهریه</div><div class="v">${money(tot.expected).replace(/ (میلیون|میلیارد|هزار)$/, '<small>$1</small>')}</div><div class="s">تومان · بر اساس تعرفه و توافق</div></div>
-    <div class="kpi" style="--k:${C[0]}"><div class="l"><i></i>شهریه دریافت‌شده</div><div class="v">${money(tot.received).replace(/ (میلیون|میلیارد|هزار)$/, '<small>$1</small>')}</div><div class="s">${faNum(Math.round(pct(tot.received, tot.expected) * 100))}٪ از تعهد</div></div>
-    <div class="kpi" style="--k:${C[2]}"><div class="l"><i></i>مانده شهریه</div><div class="v">${money(tot.remaining).replace(/ (میلیون|میلیارد|هزار)$/, '<small>$1</small>')}</div><div class="s">${money(tot.scheduled)} آن در قالب چک/قسط</div></div>
-    <div class="kpi" style="--k:${C[4]}"><div class="l"><i></i>دریافتی ${MONTHS[+monthKey.slice(5) - 1]}</div><div class="v">${money(monthPays).replace(/ (میلیون|میلیارد|هزار)$/, '<small>$1</small>')}</div><div class="s">امروز: ${todayPays.length ? money(sum(todayPays, p => p.amount)) + ' تومان' : 'هنوز دریافتی ثبت نشده'}</div></div>
-  </div>`);
-  if (shown('rings')) W.push(`<section class="card s4"><h3>شاخص‌های کلیدی <small>کودکان فعال</small></h3><div class="rings">
-    ${ring(pct(tot.received, tot.expected), C[0], 'وصول شهریه', `${money(tot.received)} از ${money(tot.expected)}`)}
-    ${ring(pct(insGot.length, insReq.length), C[1], 'بیمه ورزشی', `${faNum(insGot.length)} از ${faNum(insReq.length)} کودک`)}
-    ${ring(pct(chkGot.length, chkReq.length), C[3], 'تحویل چک', `${faNum(chkGot.length)} از ${faNum(chkReq.length)} کودک`)}
-  </div></section>`);
-  if (shown('progress')) W.push(`<section class="card s4"><h3>وضعیت تعهد شهریه <small>${money(tot.expected)} تومان</small></h3><div class="bars">
-    ${pbar('دریافت‌شده', tot.received, tot.expected, C[0])}
-    ${pbar('در قالب چک و قسط', tot.scheduled, tot.expected, C[1])}
-    ${pbar('بدون برنامه‌ی پرداخت', tot.unscheduled, tot.expected, C[2])}
-  </div><div class="foot">${faNum(noPay.length)} کودک فعال هنوز هیچ پرداخت شهریه‌ای ندارند.</div></section>`);
-  if (shown('today')) {
-    const nextEvent = DB.events.filter(e => jdnOf(e.date) != null && jdnOf(e.date) >= TODAY_JDN).sort((a, b) => jdnOf(a.date) - jdnOf(b.date))[0];
-    const undated = DB.events.filter(e => !e.date && !same(e.status, 'برگزار شد'));
-    W.push(`<section class="card s4"><h3>امروز <small>${esc(weekday(TODAY_JDN))}</small></h3>
-      <div class="big-date">${jHuman(TODAY)}</div>
-      <div class="kv">
-        <div><span>دریافتی امروز</span><b>${todayPays.length ? `${money(sum(todayPays, p => p.amount))} · ${faNum(todayPays.length)} مورد` : '—'}</b></div>
-        <div><span>سررسید گذشته و پرداخت‌نشده</span><b>${overdue.length ? pill('bad', `${faNum(overdue.length)} مورد`, '!') : pill('good', 'ندارد', '✓')}</b></div>
-        <div><span>سررسید ۷ روز آینده</span><b>${soon.length ? `${pill('warn', `${faNum(soon.length)} مورد`)} ${money(sum(soon, i => i.amount))}` : '—'}</b></div>
-        <div><span>رویداد پیش رو</span><b>${nextEvent ? `${esc(nextEvent.title)} · ${jHuman(nextEvent.date, false)}` : undated.length ? `${esc(undated[0].title)} <span class="muted">(بدون تاریخ)</span>` : '—'}</b></div>
-      </div></section>`);
-  }
-  // daily receipts, last 30 days
+  const dueOf = i => jdnOf(i.due);
+  const overdue = pend.filter(i => dueOf(i) != null && dueOf(i) < TODAY_JDN);
+  const soon = pend.filter(i => dueOf(i) != null && dueOf(i) >= TODAY_JDN && dueOf(i) - TODAY_JDN <= 7);
+  const insReqL = active.filter(c => !same(c.insurance, 'معاف') && !isExempt(c));
+  const chkReqL = active.filter(c => { const s = norm(c.checkStatus); return norm(c.payMode).includes(norm('چک')) && !s.startsWith(norm('لازم')) && !s.includes(norm('نمی‌دهد')); });
+  const atts = uniq([...ATT, ...active.map(c => c.attendance)]).filter(a => active.some(c => same(c.attendance, a)));
   const days = []; for (let d = TODAY_JDN - 29; d <= TODAY_JDN; d++) days.push(d);
-  const byDay = {}; for (const p of datedPays) { const d = jdnOf(p.date); byDay[d] = (byDay[d] || 0) + (+p.amount || 0); }
-  const dailyVals = days.map(d => byDay[d] || 0), undatedPays = S.payments.filter(p => jdnOf(p.date) == null);
-  if (shown('daily')) W.push(`<section class="card s7"><h3>دریافتی روزانه <small>۳۰ روز اخیر · تومان</small></h3>${chartBox('ch-daily', { label: 'دریافتی روزانه', empty: dailyVals.some(v => v) ? '' : 'در ۳۰ روز اخیر دریافتی تاریخ‌دار ثبت نشده است.' })}
-    <div class="foot">${undatedPays.length ? `${faNum(undatedPays.length)} دریافت بدون تاریخ (${money(sum(undatedPays, p => p.amount))} تومان) در این نمودار نیامده است.` : 'همه‌ی دریافت‌ها تاریخ دارند.'}</div></section>`);
-  // dues per month
-  const monthsSet = uniq(pend.filter(i => jdnOf(i.due) != null).map(i => i.due.slice(0, 7))).sort();
-  const dueChk = monthsSet.map(m => sum(pend.filter(i => String(i.due).startsWith(m) && same(i.type, 'چک')), i => i.amount));
-  const dueCash = monthsSet.map(m => sum(pend.filter(i => String(i.due).startsWith(m) && !same(i.type, 'چک')), i => i.amount));
-  if (shown('dues')) W.push(`<section class="card s5"><h3>سررسید چک و اقساط <small>به تفکیک ماه · تومان</small></h3>${chartBox('ch-dues', { label: 'سررسید چک و اقساط', empty: monthsSet.length ? '' : 'چک یا قسط در انتظاری ثبت نشده است.' })}</section>`);
-  // receipts by category (+ cashed installments as tuition)
-  const catVals = PAY_CATS.map(cat => sum(S.payments.filter(p => cat === 'سایر' ? !PAY_CATS.slice(0, -1).some(c => same(c, p.category)) : same(p.category, cat)), p => p.amount) + (cat === 'شهریه' ? sum(S.installments.filter(i => isDone(i.status)), i => i.amount) : 0));
-  const catIdx = PAY_CATS.map((_, i) => i).filter(i => catVals[i] > 0), catTotal = sum(catVals, v => v);
-  if (shown('category')) W.push(`<section class="card s3"><h3>دریافتی به تفکیک دسته</h3>${chartBox('ch-cat', { label: 'دریافتی به تفکیک دسته', empty: catTotal ? '' : 'دریافتی ثبت نشده است.', center: `<div><b>${money(catTotal)}</b><span>تومان</span></div>` })}</section>`);
-  const methVals = METHODS.map(m => sum(S.payments.filter(p => same(p.method, m) || (m === 'نامشخص' && !p.method)), p => p.amount));
-  if (shown('method')) W.push(`<section class="card s3"><h3>روش دریافت</h3>${chartBox('ch-method', { label: 'روش دریافت', empty: sum(methVals, v => v) ? '' : 'دریافتی ثبت نشده است.' })}</section>`);
-  const classes = uniq(active.map(c => c.cls)).map(cl => ({ cl, n: active.filter(c => same(c.cls, cl)).length })).sort((a, b) => b.n - a.n);
-  if (shown('classes')) W.push(`<section class="card s3"><h3>کودکان هر کلاس <small>نفر</small></h3>${chartBox('ch-classes', { label: 'تعداد کودکان هر کلاس', empty: classes.length ? '' : 'کودکی ثبت نشده است.' })}</section>`);
-  if (shown('staff')) W.push(`<section class="card s3"><h3>پرسنل به تفکیک سمت</h3>${chartBox('ch-staff', { label: 'پرسنل به تفکیک سمت', empty: staffActive.length ? '' : 'پرسنلی ثبت نشده است.', center: `<div><b>${faNum(staffActive.length)}</b><span>نفر</span></div>` })}</section>`);
-  const groups = uniq([...AGE, ...active.map(c => c.group)]).filter(g => active.some(c => same(c.group, g)));
-  if (shown('ageAtt')) W.push(`<section class="card s5"><h3>گروه سنی و نوع حضور <small>نفر</small></h3>${chartBox('ch-age', { label: 'گروه سنی و نوع حضور' })}</section>`);
-  const top = active.map(c => ({ c, f: fin(c.id) })).filter(x => x.f.remaining > 0).sort((a, b) => b.f.remaining - a.f.remaining).slice(0, 8);
-  if (shown('remaining')) W.push(`<section class="card s7"><h3>بیشترین مانده شهریه <small>۸ کودک اول · تومان</small></h3>${chartBox('ch-rem', { tall: true, label: 'بیشترین مانده شهریه', empty: top.length ? '' : 'همه‌ی کودکان تسویه کرده‌اند.' })}</section>`);
-  if (shown('upcoming')) {
-    const list = pend.filter(i => { const d = jdnOf(i.due); return d != null && d - TODAY_JDN <= 60; }).sort((a, b) => jdnOf(a.due) - jdnOf(b.due)).slice(0, 12);
-    W.push(`<section class="card s12"><h3>سررسیدهای نزدیک <small>گذشته و ۶۰ روز آینده · <a href="#installments" style="color:inherit">همه‌ی چک‌ها و اقساط</a></small></h3>
-      <div class="tbl-scroll"><table><thead><tr><th>کودک</th><th>نوع</th><th>مبلغ</th><th>سررسید</th><th>زمان</th><th>وضعیت</th><th></th></tr></thead><tbody>
-      ${list.length ? list.map(i => `<tr data-open="installments:${esc(i.id)}"><td><span class="name">${esc(childById(i.childId)?.name || i.childId)}</span></td><td>${esc(i.type || '—')}</td><td class="num">${i.amount == null ? '<span class="muted">نامشخص</span>' : full(i.amount)}</td><td class="num">${jHuman(i.due)}</td><td>${daysPill(i.due)}</td><td>${statusPill('installments', 'status', i.status)}</td><td><button class="btn sm" data-collect="${esc(i.id)}">${same(i.type, 'چک') ? 'ثبت وصول' : 'ثبت پرداخت'}</button></td></tr>`).join('') : '<tr class="empty-row"><td colspan="7">در ۶۰ روز آینده سررسیدی نیست.</td></tr>'}
-      </tbody></table></div></section>`);
-  }
-  main.insertAdjacentHTML('beforeend', `<div class="grid">${W.join('')}</div>`);
-
-  if (!window.Chart) return;
-  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-  Chart.defaults.font.size = 12;
-  Chart.defaults.color = t.ink2;
-  if (shown('daily') && dailyVals.some(v => v)) {
-    mk('ch-daily', { type: 'bar', data: { labels: days.map(d => { const o = d2j(d); return faDigits(`${o.jd} ${MONTHS[o.jm - 1].slice(0, 3)}`); }), datasets: [barDs('دریافتی', dailyVals, C[0], { maxBarThickness: 16, categoryPercentage: .9 })] },
-      options: Object.assign(baseOpts(t, { money: true }), {}) });
-    charts['ch-daily'].options.plugins.tooltip.callbacks.title = items => jHuman(fromJdn(days[items[0].dataIndex]));
-    charts['ch-daily'].update('none');
-  }
-  if (shown('dues') && monthsSet.length) {
-    const o = baseOpts(t, { money: true, stacked: true, legend: true });
-    mk('ch-dues', { type: 'bar', data: { labels: monthsSet.map(m => `${MONTHS[+m.slice(5) - 1]}`), datasets: [
-      barDs('چک', dueChk, C[0], { borderColor: t.panel, borderWidth: { top: 2 } }), barDs('قسط نقدی', dueCash, C[1], { borderColor: t.panel, borderWidth: { top: 2 } })] }, options: o });
-  }
-  if (shown('category') && catTotal) donut('ch-cat', catIdx.map(i => PAY_CATS[i]), catIdx.map(i => catVals[i]), catIdx.map(i => i < 5 ? C[i] : t.neutral), t, true);
-  if (shown('method') && sum(methVals, v => v)) {
-    const mi = METHODS.map((_, i) => i).filter(i => methVals[i] > 0);
-    mk('ch-method', { type: 'pie', data: { labels: mi.map(i => METHODS[i]), datasets: [{ data: mi.map(i => methVals[i]), backgroundColor: mi.map(i => METHODS[i] === 'نامشخص' ? t.neutral : C[i]), borderColor: t.panel, borderWidth: 2, hoverOffset: 4 }] },
-      options: { responsive: true, maintainAspectRatio: false, animation: { duration: reduceMotion ? 0 : 450 }, plugins: { legend: { position: 'bottom', rtl: true, textDirection: 'rtl', labels: { color: t.ink2, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 10, boxHeight: 10, padding: 12 } },
-        tooltip: { rtl: true, textDirection: 'rtl', backgroundColor: t.tip, padding: 10, callbacks: { label: ctx => { const tt = ctx.dataset.data.reduce((a, b) => a + b, 0); return ` ${ctx.label}: ${full(ctx.parsed)} تومان (${faNum(Math.round(pct(ctx.parsed, tt) * 100))}٪)`; } } } } } });
-  }
-  if (shown('classes') && classes.length) mk('ch-classes', { type: 'bar', data: { labels: classes.map(x => x.cl), datasets: [barDs('کودک', classes.map(x => x.n), C[0])] }, options: baseOpts(t) });
-  if (shown('staff') && staffActive.length) donut('ch-staff', roles, roles.map(r => staffActive.filter(s => same(s.role, r)).length), roles.map((_, i) => i < 5 ? C[(i + 3) % 5] : t.neutral), t, false);
-  if (shown('ageAtt') && groups.length) {
-    const atts = uniq([...ATT, ...active.map(c => c.attendance)]);
-    mk('ch-age', { type: 'bar', data: { labels: groups, datasets: atts.map((a, i) => barDs(a, groups.map(g => active.filter(c => same(c.group, g) && same(c.attendance, a)).length), i < 5 ? C[i] : t.neutral)) }, options: baseOpts(t, { horizontal: true, legend: true }) });
-  }
-  if (shown('remaining') && top.length) {
-    mk('ch-rem', { type: 'bar', data: { labels: top.map(x => x.c.name), datasets: [
-      barDs('در قالب چک/قسط', top.map(x => x.f.scheduled), C[1], { borderColor: t.panel, borderWidth: { left: 2 } }),
-      barDs('بدون برنامه', top.map(x => x.f.unscheduled), C[2], { borderColor: t.panel, borderWidth: { left: 2 } })] },
-      options: baseOpts(t, { horizontal: true, stacked: true, legend: true, money: true }) });
-  }
+  const byDay = {}; for (const p of S.payments) { const d = jdnOf(p.date); if (d != null) byDay[d] = (byDay[d] || 0) + (+p.amount || 0); }
+  const dated = pend.filter(i => dueOf(i) != null), monthOfDue = i => normDate(i.due).slice(0, 7);
+  const months = uniq(dated.map(monthOfDue)).sort();
+  const known = PAY_CATS.slice(0, -1);
+  const catVals = PAY_CATS.map(cat => sum(S.payments.filter(p => cat === 'سایر' ? !known.some(c => same(c, p.category)) : same(p.category, cat)), p => p.amount)
+    + (cat === 'شهریه' ? sum(S.installments.filter(i => isDone(i.status)), i => i.amount) : 0));
+  const methods = uniq([...METHODS, ...S.payments.map(p => p.method)]);
+  const methVals = methods.map(m => sum(S.payments.filter(p => same(p.method, m) || (m === 'نامشخص' && !p.method)), p => p.amount));
+  const costMonths = []; { const j = d2j(TODAY_JDN); let y = j.jy, m = j.jm; for (let k = 0; k < 6; k++) { costMonths.unshift(`${y}/${pad2(m)}`); if (--m < 1) { m = 12; y--; } } }
+  const salKey = s => s.month || (normDate(s.date) || '').slice(0, 7);
+  const futureEvents = DB.events.filter(e => jdnOf(e.date) != null && jdnOf(e.date) >= TODAY_JDN).sort((a, b) => jdnOf(a.date) - jdnOf(b.date));
+  const openEvents = DB.events.filter(e => !e.date && !same(e.status, 'برگزار شد'));
+  return {
+    S, active, tot, todayPays, staffActive, pend, overdue, soon,
+    insReq: insReqL.length, insGot: insReqL.filter(c => same(c.insurance, 'دریافت شد')).length,
+    chkReq: chkReqL.length, chkGot: chkReqL.filter(c => norm(c.checkStatus).startsWith(norm('تحویل داده'))).length,
+    noPay: active.filter(c => fin(c.id).expected > 0 && fin(c.id).received === 0).length,
+    atts, att: ATT.map(a => active.filter(c => same(c.attendance, a)).length),
+    roles: uniq(staffActive.map(s => s.role)),
+    days, dailyVals: days.map(d => byDay[d] || 0), undated: S.payments.filter(p => jdnOf(p.date) == null),
+    months, dueChk: months.map(m => sum(dated.filter(i => monthOfDue(i) === m && same(i.type, 'چک')), i => i.amount)), dueCash: months.map(m => sum(dated.filter(i => monthOfDue(i) === m && !same(i.type, 'چک')), i => i.amount)),
+    catVals, catTotal: sum(catVals, v => v), methods, methVals,
+    classes: uniq(active.map(c => c.cls)).map(cl => ({ cl, n: active.filter(c => same(c.cls, cl)).length })).sort((a, b) => b.n - a.n),
+    groups: uniq([...AGE, ...active.map(c => c.group)]).filter(g => active.some(c => same(c.group, g))),
+    costMonths, salByM: costMonths.map(m => sum(DB.salaries.filter(s => salKey(s) === m), s => s.amount)), expByM: costMonths.map(m => sum(DB.expenses.filter(e => (normDate(e.date) || '').startsWith(m)), e => e.amount)),
+    salThisMonth: sum(DB.salaries.filter(s => salKey(s) === TODAY.slice(0, 7)), s => s.amount),
+    nextEvent: futureEvents[0] || null, openEvent: openEvents[0] || null,
+  };
+}
+function monthLabels(keys) {
+  const years = new Set(keys.map(k => k.slice(0, 4)));
+  return keys.map(k => MONTHS[+k.slice(5, 7) - 1] + (years.size > 1 ? ' ' + faDigits(k.slice(2, 4)) : ''));
+}
+function buildTiles(M, t) {
+  const C = t.c, T = [];
+  const m1 = v => faNum(+(v / 1e6).toFixed(1));
+  T.push({ id: 'trend', t: 'روند دریافت‌ها', sub: '۳۰ روز اخیر · میلیون تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[2],
+    empty: M.dailyVals.some(v => v) ? '' : 'در ۳۰ روز اخیر دریافتی تاریخ‌دار ثبت نشده است.',
+    note: M.undated.length ? `${faNum(M.undated.length)} دریافت بدون تاریخ (${money(sum(M.undated, p => p.amount))} تومان) در این نمودار نیامده است.` : '',
+    cfg: () => {
+      const o = baseOpts(t, { millions: true, money: true, blur: 16, xTicks: 6 });
+      o.plugins.tooltip.callbacks.title = items => jHuman(fromJdn(M.days[items[0].dataIndex]));
+      return { type: 'line', data: { labels: M.days.map(d => { const j = d2j(d); return `${faNum(j.jd)} ${MONTHS[j.jm - 1]}`; }),
+        datasets: [{ label: 'دریافتی', data: M.dailyVals, borderColor: lineGrad(C[0], C[2]), backgroundColor: areaGrad(C[2]), fill: 'origin', tension: .38, borderWidth: 2.5,
+          pointRadius: M.dailyVals.map(v => v ? 3 : 0), pointHoverRadius: 5, pointBackgroundColor: '#fff', pointBorderColor: C[2], pointBorderWidth: 2, glow: C[2] }] }, options: o };
+    } });
+  const catItems = PAY_CATS.map((l, i) => ({ l, v: M.catVals[i], c: i < 5 ? C[i] : t.neutral })).filter(x => x.v > 0);
+  T.push({ id: 'category', t: 'دریافت به تفکیک دسته', sub: 'تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[0],
+    empty: M.catTotal ? '' : 'دریافتی ثبت نشده است.', center: `<div><b>${money(M.catTotal)}</b><span>کل دریافت</span></div>`, side: lgHtml(catItems, money),
+    cfg: () => donutCfg(t, catItems.map(x => x.l), catItems.map(x => x.v), catItems.map(x => x.c), { money: true }) });
+  const methItems = M.methods.map((l, i) => ({ l, v: M.methVals[i], c: same(l, 'نامشخص') ? t.neutral : C[i % 5] })).filter(x => x.v > 0);
+  T.push({ id: 'method', t: 'روش دریافت', sub: 'دریافت‌های ثبت‌شده', sheet: 'دریافت‌ها', page: 'payments', tc: C[1],
+    empty: methItems.length ? '' : 'دریافتی ثبت نشده است.', side: lgHtml(methItems, money),
+    cfg: () => donutCfg(t, methItems.map(x => x.l), methItems.map(x => x.v), methItems.map(x => x.c), { money: true, pie: true }) });
+  T.push({ id: 'rings', t: 'شاخص‌های کلیدی', sub: 'کودکان فعال', sheet: 'کودکان', page: 'children', tc: C[3], kind: 'html',
+    html: `<div class="rings">${ring(pct(M.tot.collected, M.tot.expected), C[0], C[2], 'وصول شهریه', `از ${money(M.tot.expected)}`)}${ring(pct(M.insGot, M.insReq), C[1], C[3], 'بیمه ورزشی', `${faNum(M.insGot)} از ${faNum(M.insReq)} کودک`)}${ring(pct(M.chkGot, M.chkReq), C[3], C[0], 'تحویل چک', `${faNum(M.chkGot)} از ${faNum(M.chkReq)} کودک`)}</div>` });
+  T.push({ id: 'classes', t: 'کودکان هر کلاس', sub: 'نفر', sheet: 'کودکان', page: 'children', tc: C[0], empty: M.classes.length ? '' : 'کودکی ثبت نشده است.',
+    cfg: () => ({ type: 'bar', data: { labels: M.classes.map(x => x.cl), datasets: [barDs('کودک', M.classes.map(x => x.n), C[0], vGrad(C[0]))] }, options: baseOpts(t, { labels: true, unit: 'کودک', grace: '20%' }) }) });
+  T.push({ id: 'ageAtt', t: 'گروه سنی و نوع حضور', sub: 'نفر', sheet: 'کودکان', page: 'children', tc: C[1], legend: ilg(M.atts.map((a, i) => ({ l: a, c: C[i % 5] }))),
+    empty: M.groups.length ? '' : 'کودکی ثبت نشده است.',
+    cfg: () => ({ type: 'bar', data: { labels: M.groups, datasets: M.atts.map((a, i) => barDs(a, M.groups.map(g => M.active.filter(c => same(c.group, g) && same(c.attendance, a)).length), C[i % 5], hGrad(C[i % 5], .5), { stack: 's', borderRadius: 4 })) },
+      options: baseOpts(t, { horizontal: true, stacked: true, labels: true, unit: 'کودک', grace: '16%' }) }) });
+  const svc = [
+    { l: 'شنا', v: M.active.filter(c => same(c.swim, 'دارد')).length },
+    { l: 'صبحانه و چاشت', v: M.active.filter(c => same(c.meal, 'دارد')).length },
+    { l: 'بیمه ورزشی', v: M.insGot },
+  ];
+  T.push({ id: 'services', t: 'خدمات جانبی', sub: `کودک از ${faNum(M.active.length)} نفر`, sheet: 'خدمات', page: 'tariffs', tc: C[1],
+    note: DB.services.map(s => `${String(s.title || '').replace(/\s*\(.*\)$/, '')} ${s.attendance && !same(s.attendance, 'همه') ? `(${s.attendance}) ` : ''}${money(s.amount)}`).join(' · '),
+    cfg: () => ({ type: 'bar', data: { labels: svc.map(x => x.l), datasets: [barDs('کودک', svc.map(x => x.v), C[1], hGrad(C[1]))] }, options: baseOpts(t, { horizontal: true, labels: true, unit: 'کودک', grace: '28%', labelFmt: v => `${faNum(v)} نفر` }) }) });
+  const tuItems = [{ l: 'دریافت‌شده', v: M.tot.collected, c: C[0] }, { l: 'چک و قسط در جریان', v: M.tot.scheduled, c: C[1] }, { l: 'بدون برنامه‌ی پرداخت', v: M.tot.unscheduled, c: C[2] }];
+  T.push({ id: 'tuition', t: 'ترکیب تعهد شهریه', sub: `${money(M.tot.expected)} تومان`, sheet: 'کودکان', page: 'children', tc: C[2],
+    empty: M.tot.expected ? '' : 'تعهد شهریه‌ای ثبت نشده است.', center: `<div><b>${faNum(Math.round(pct(M.tot.collected, M.tot.expected) * 100))}٪</b><span>وصول‌شده</span></div>`, side: lgHtml(tuItems, money),
+    note: `${faNum(M.noPay)} کودک فعال هنوز پرداخت شهریه‌ای ندارند.`,
+    cfg: () => donutCfg(t, tuItems.map(x => x.l), tuItems.map(x => x.v), tuItems.map(x => x.c), { money: true }) });
+  T.push({ id: 'dues', t: 'سررسید چک و اقساط', sub: 'میلیون تومان', sheet: 'اقساط و چک‌ها', page: 'installments', tc: C[0], legend: ilg([{ l: 'چک', c: C[0] }, { l: 'قسط نقدی', c: C[1] }]),
+    empty: M.months.length ? '' : 'چک یا قسط در انتظاری ثبت نشده است.',
+    note: M.overdue.length ? `${faNum(M.overdue.length)} مورد سررسید گذشته و پرداخت‌نشده · ${faNum(M.pend.length)} مورد در انتظار` : `${faNum(M.pend.length)} چک و قسط در انتظار`,
+    cfg: () => ({ type: 'bar', data: { labels: monthLabels(M.months), datasets: [barDs('چک', M.dueChk, C[0], vGrad(C[0], .5), { stack: 's', borderRadius: 4 }), barDs('قسط نقدی', M.dueCash, C[1], vGrad(C[1], .5), { stack: 's', borderRadius: 4 })] },
+      options: baseOpts(t, { stacked: true, millions: true, money: true, labels: true, labelFmt: m1, grace: '16%' }) }) });
+  const tf = DB.tariffs;
+  T.push({ id: 'tariffs', t: 'تعرفه‌ها', sub: 'میلیون تومان', sheet: 'تعرفه‌ها', page: 'tariffs', tc: C[3], legend: ilg([{ l: 'بخش نقدی', c: C[0] }, { l: 'چک اول', c: C[1] }, { l: 'چک دوم', c: C[2] }]),
+    empty: tf.length ? '' : 'تعرفه‌ای ثبت نشده است.',
+    cfg: () => ({ type: 'bar', data: { labels: tf.map(x => `${x.group || ''} · ${x.attendance || ''}`), datasets: [
+      barDs('بخش نقدی', tf.map(x => +x.cash || 0), C[0], C[0], { stack: 's', borderRadius: 3 }), barDs('چک اول', tf.map(x => +x.check1 || 0), C[1], C[1], { stack: 's', borderRadius: 3 }), barDs('چک دوم', tf.map(x => +x.check2 || 0), C[2], C[2], { stack: 's', borderRadius: 3 })] },
+      options: baseOpts(t, { horizontal: true, stacked: true, millions: true, money: true, labels: true, labelFmt: m1, grace: '20%', blur: 8 }) }) });
+  const roleItems = M.roles.map((l, i) => ({ l, v: M.staffActive.filter(s => same(s.role, l)).length, c: i < 5 ? C[i] : t.neutral }));
+  T.push({ id: 'staff', t: 'پرسنل و حقوق', sub: 'نفر', sheet: 'پرسنل', page: 'staff', tc: C[0],
+    empty: M.staffActive.length ? '' : 'پرسنلی ثبت نشده است.', center: `<div><b>${faNum(M.staffActive.length)}</b><span>نفر</span></div>`, side: lgHtml(roleItems, v => `${faNum(v)} نفر`),
+    note: `حقوق پرداختی ${MONTHS[+TODAY.slice(5, 7) - 1]}: ${M.salThisMonth ? money(M.salThisMonth) + ' تومان' : 'هنوز ثبت نشده'}`,
+    cfg: () => donutCfg(t, roleItems.map(x => x.l), roleItems.map(x => x.v), roleItems.map(x => x.c), { unit: 'نفر' }) });
+  const hasCosts = M.salByM.some(v => v) || M.expByM.some(v => v);
+  T.push({ id: 'costs', t: 'هزینه‌ها و حقوق', sub: '۶ ماه اخیر · میلیون تومان', sheet: 'خریدها و هزینه‌ها', page: 'expenses', tc: C[3],
+    legend: hasCosts ? ilg([{ l: 'حقوق', c: C[3] }, { l: 'خرید و هزینه', c: C[2] }]) : '',
+    empty: hasCosts ? '' : '<span>هنوز هزینه یا حقوقی ثبت نشده است.</span><span class="row"><button class="btn sm" type="button" data-add="expenses">+ ثبت هزینه</button><button class="btn sm" type="button" data-add="salaries">+ ثبت حقوق</button></span>',
+    cfg: () => ({ type: 'bar', data: { labels: monthLabels(M.costMonths), datasets: [barDs('حقوق', M.salByM, C[3], vGrad(C[3])), barDs('خرید و هزینه', M.expByM, C[2], vGrad(C[2]))] }, options: baseOpts(t, { millions: true, money: true }) }) });
+  return T;
+}
+function tileHtml(d, prefix, inModal) {
+  let body;
+  if (d.empty) body = `<div class="empty">${d.empty}</div>`;
+  else if (d.kind === 'html') body = d.html;
+  else if (!window.Chart) body = '<div class="empty">کتابخانه‌ی نمودار بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.</div>';
+  else body = `<div class="cv"><canvas id="${prefix}${d.id}" role="img" aria-label="${esc(d.t)}"></canvas>${d.center ? `<div class="center">${d.center}</div>` : ''}</div>${d.side || ''}`;
+  return `<section class="tile" style="--tc:${d.tc}" data-tile="${d.id}">
+    <header><h3>${esc(d.t)}</h3><span class="sub">${esc(d.sub || '')}</span><span class="tools"><span class="sheet" title="شیت اکسل">${esc(d.sheet)}</span>
+      <a class="icon-btn" href="#${d.page}" title="ویرایش اطلاعات ${esc(d.sheet)}" aria-label="ویرایش اطلاعات ${esc(d.sheet)}">${ICON_EDIT}</a>
+      ${inModal ? '' : `<button class="icon-btn" type="button" data-max="${d.id}" title="بزرگ‌نمایی" aria-label="بزرگ‌نمایی ${esc(d.t)}">${ICON_MAX}</button>`}</span></header>
+    ${d.empty ? '' : (d.legend || '')}
+    <div class="body${d.side && !d.empty ? ' split' : ''}">${body}</div>
+    ${d.note ? `<div class="note" title="${esc(d.note)}">${esc(d.note)}</div>` : ''}
+  </section>`;
+}
+function drawTiles(defs, prefix) {
+  if (!setChartDefaults()) return;
+  for (const d of defs) if (d.cfg && !d.empty && d.kind !== 'html') mk(prefix + d.id, d.cfg());
+}
+function kpiHtml(M, C) {
+  const u = s => s.replace(/ (میلیون|میلیارد|هزار)$/, '<small>$1</small>');
+  const todaySum = sum(M.todayPays, p => p.amount);
+  return `<div class="kpis">
+    <a class="kpi" href="#children" style="--k:${C[0]}"><div class="l"><i></i>کودکان فعال</div><div class="v">${faNum(M.active.length)}</div><div class="s">${faNum(M.att[0])} هرروز · ${faNum(M.att[1])} یک‌روزدرمیان</div></a>
+    <a class="kpi" href="#staff" style="--k:${C[3]}"><div class="l"><i></i>پرسنل فعال</div><div class="v">${faNum(M.staffActive.length)}</div><div class="s">${M.roles.slice(0, 2).map(r => `${faNum(M.staffActive.filter(s => same(s.role, r)).length)} ${esc(r)}`).join(' · ') || '—'}</div></a>
+    <a class="kpi" href="#tariffs" style="--k:${C[1]}"><div class="l"><i></i>تعهد شهریه</div><div class="v">${u(money(M.tot.expected))}</div><div class="s">تومان · طبق تعرفه و توافق</div></a>
+    <a class="kpi" href="#payments" style="--k:${C[0]}"><div class="l"><i></i>شهریه دریافت‌شده</div><div class="v">${u(money(M.tot.collected))}</div><div class="s">${faNum(Math.round(pct(M.tot.collected, M.tot.expected) * 100))}٪ از تعهد · امروز ${todaySum ? money(todaySum) : '۰'}</div></a>
+    <a class="kpi" href="#children" style="--k:${C[2]}"><div class="l"><i></i>مانده شهریه</div><div class="v">${u(money(M.tot.remaining))}</div><div class="s">${money(M.tot.scheduled)} چک و قسط در جریان</div></a>
+    <a class="kpi" href="#installments" style="--k:${M.overdue.length ? 'var(--bad)' : C[4]}"><div class="l"><i></i>سررسیدها</div><div class="v">${faNum(M.overdue.length)}<small>مورد گذشته</small></div><div class="s">۷ روز آینده: ${M.soon.length ? `${faNum(M.soon.length)} مورد · ${money(sum(M.soon, i => i.amount))}` : 'ندارد'}</div></a>
+  </div>`;
+}
+let TILES_CACHE = [];
+function renderDashboard(main) {
+  const t = tok(), M = dashModel();
+  RING_N = 0;
+  const defs = buildTiles(M, t).filter(d => shown(d.id));
+  TILES_CACHE = defs;
+  main.classList.add('fit');
+  main.insertAdjacentHTML('beforeend', `<div class="dash">${shown('kpis') ? kpiHtml(M, t.c) : ''}
+    <div class="board" style="--rows:${Math.max(1, Math.ceil(defs.length / 4))}">${defs.length ? defs.map(d => tileHtml(d, 'ch-')).join('') : '<div class="empty">همه‌ی نمودارها خاموش‌اند. از «تنظیمات» نمودارهای دلخواه را روشن کنید.</div>'}</div></div>`);
+  drawTiles(defs, 'ch-');
+  return M;
+}
+function openMax(id) {
+  const d = TILES_CACHE.find(x => x.id === id); if (!d) return;
+  destroyCharts('mx-');
+  $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal max" role="dialog" aria-modal="true" aria-label="${esc(d.t)}">${tileHtml(d, 'mx-', true)}
+    <div class="modal-actions"><span class="spacer"></span><button type="button" class="btn" data-close>بستن</button></div></div></div>`;
+  drawTiles([d], 'mx-');
+  const btn = $('#modal-root [data-close]'); if (btn) btn.focus();
 }
 
 /* ================= tables ================= */
@@ -965,7 +1095,7 @@ function openForm(ent, id, preset) {
   if (ent === 'payments' || ent === 'installments') updateChildHint(ent);
   const first = $('#m-form input:not([readonly]), #m-form select'); if (first) first.focus();
 }
-function closeModal() { $('#modal-root').innerHTML = ''; MODAL = null; }
+function closeModal() { destroyCharts('mx-'); $('#modal-root').innerHTML = ''; MODAL = null; }
 function updateMoneyHint(id, f) {
   const el = document.getElementById(id), h = document.getElementById(id + '-hint'); if (!el || !h) return;
   const n = parseMoney(el.value);
@@ -1043,6 +1173,7 @@ const PAGES = [
   { id: 'settings', l: 'تنظیمات' },
 ];
 const currentPage = () => { const h = (location.hash || '').replace('#', ''); return PAGES.some(p => p.id === h) ? h : 'dashboard'; };
+let PRESENT = false;
 function badgeFor(id) {
   if (id === 'children') return `<span class="badge">${faNum(DB.children.filter(isActive).length)}</span>`;
   if (id === 'installments') {
@@ -1061,14 +1192,13 @@ function renderRail() {
       ${s.opts().map(o => `<button type="button" class="opt" data-slice="${s.k}" data-v="${esc(o)}" aria-pressed="${sel.some(v => same(v, o))}"><span>${esc(o)}</span><span class="n">${faNum(DB.children.filter(c => isActive(c) && same(c[s.k], o)).length)}</span></button>`).join('')}</div>`; }).join('')}</div>
   </aside>`;
 }
+const SKINS = [
+  { id: 'neon', l: 'نئون بنفش', sw: ['#0b0418', '#c06bff', '#ff5ac8'] },
+  { id: 'navy', l: 'نئون سرمه‌ای', sw: ['#060b2c', '#6a7dff', '#ff5ac8'] },
+  { id: 'midnight', l: 'نئون شب', sw: ['#050309', '#c06bff', '#25d6f2'] },
+];
 function renderSettings(main) {
   const counts = ENTS.map(e => `<div><b>${faNum(DB[e].length)}</b>${esc(SCHEMA[e].title)}</div>`).join('');
-  const skins = [
-    { id: 'navy', l: 'سرمه‌ای', sw: ['#0a1238', '#e8409a', '#11a3c6'] },
-    { id: 'plum', l: 'بادمجانی', sw: ['#150a2b', '#e8409a', '#8a63f0'] },
-    { id: 'ocean', l: 'شب فیروزه‌ای', sw: ['#06202b', '#11a3c6', '#e8623f'] },
-    { id: 'light', l: 'روشن', sw: ['#eef1fa', '#d6338a', '#0b8fb0'] },
-  ];
   const hasSeed = !!($('#seed-xlsx')?.textContent || '').trim();
   main.insertAdjacentHTML('beforeend', `<div class="set-grid">
     <section class="card"><h3>داده‌ها</h3><div class="counts">${counts}</div>
@@ -1078,17 +1208,17 @@ function renderSettings(main) {
         <label class="btn" for="reimport">جایگزینی با فایل اکسل جدید</label><input id="reimport" type="file" accept=".xlsx,.xls" hidden>
         ${hasSeed ? '<button class="btn danger" type="button" data-reset>بازگشت به داده‌های اولیه</button>' : ''}
       </div>
-      <p class="muted" id="reimport-note" style="margin-top:10px;font-size:12px">جایگزینی با فایل جدید، همه‌ی اطلاعات فعلی داشبورد را با محتوای آن فایل عوض می‌کند.</p></section>
-    <section class="card"><h3>پوسته‌ی رنگی</h3><p>رنگ پس‌زمینه و کارت‌ها را انتخاب کنید. رنگ نمودارها در همه‌ی پوسته‌ها یکسان می‌ماند تا خواندن‌شان آسان باشد.</p>
-      <div class="skins">${skins.map(s => `<button type="button" class="skin" data-skin="${s.id}" aria-pressed="${(PREFS.skin || 'navy') === s.id}">${s.sw.map(c => `<i style="background:${c}"></i>`).join('')}<span>${s.l}</span></button>`).join('')}</div></section>
-    <section class="card" style="grid-column:1/-1"><h3>نمودارهای داشبورد</h3><p>هر بخشی را که نمی‌خواهید در صفحه‌ی داشبورد ببینید خاموش کنید.</p>
-      <div class="toggles">${WIDGETS.map(w => `<label><input type="checkbox" data-widget="${w.id}"${shown(w.id) ? ' checked' : ''}> ${esc(w.l)}</label>`).join('')}</div></section>
+      <p class="muted" style="margin-top:10px;font-size:12px">جایگزینی با فایل جدید، همه‌ی اطلاعات فعلی داشبورد را با محتوای آن فایل عوض می‌کند.</p></section>
+    <section class="card"><h3>پوسته‌ی رنگی</h3><p>رنگ پس‌زمینه و کارت‌ها را انتخاب کنید. رنگ‌های نئونی نمودارها در همه‌ی پوسته‌ها یکسان می‌ماند.</p>
+      <div class="skins">${SKINS.map(s => `<button type="button" class="skin" data-skin="${s.id}" aria-pressed="${(PREFS.skin || 'neon') === s.id}">${s.sw.map(c => `<i style="background:${c};box-shadow:0 0 6px ${c}"></i>`).join('')}<span>${s.l}</span></button>`).join('')}</div></section>
+    <section class="card" style="grid-column:1/-1"><h3>نمودارهای صفحه‌ی داشبورد</h3><p>هر نموداری را که نمی‌خواهید در صفحه‌ی اصلی ببینید خاموش کنید؛ بقیه دوباره کل صفحه را پر می‌کنند.</p>
+      <div class="toggles">${TILE_LIST.map(w => `<label><input type="checkbox" data-widget="${w.id}"${shown(w.id) ? ' checked' : ''}> ${esc(w.l)}</label>`).join('')}</div></section>
   </div>`);
 }
 function renderWelcome() {
   destroyCharts();
   $('#app').innerHTML = `<main style="grid-column:1/-1"><div class="welcome">
-    <h1 class="brand" style="font-size:48px">داشبورد مهد</h1>
+    <h1 class="brand" style="font-size:52px">داشبورد مهد</h1>
     <p style="color:var(--ink-2)">برای شروع، فایل اکسل اطلاعات مهد را یک بار وارد کنید. بعد از آن همه‌ی تغییرات را در خود داشبورد انجام می‌دهید و اطلاعات در همین مرورگر ذخیره می‌شود.</p>
     <label class="drop" id="drop" for="first-file"><p><b>فایل اکسل را اینجا رها کنید</b><br>یا برای انتخاب فایل کلیک کنید</p><span class="btn primary">انتخاب فایل اکسل</span></label>
     <input id="first-file" type="file" accept=".xlsx,.xls" hidden>
@@ -1102,24 +1232,39 @@ function renderWelcome() {
   $('#first-file').addEventListener('change', async e => { const f = e.target.files[0]; if (f && await importFile(f)) render(); });
 }
 function render() {
-  document.documentElement.setAttribute('data-skin', PREFS.skin || 'navy');
+  document.documentElement.setAttribute('data-skin', PREFS.skin || 'neon');
   if (!DB) { renderWelcome(); return; }
   computeFin(); destroyCharts();
   const page = currentPage(), meta = PAGES.find(p => p.id === page);
-  const scrollY = window.scrollY;
+  const prevMain = $('#main'), scrollTop = prevMain ? prevMain.scrollTop : 0, winY = window.scrollY;
+  if (page !== 'dashboard') PRESENT = false;
   $('#app').innerHTML = renderRail() + '<main id="main"></main>';
+  $('#app').classList.toggle('present', PRESENT);
   const main = $('#main');
   const fchips = SLICERS.flatMap(s => (PREFS.filters[s.k] || []).map(v => `<span class="chip">${esc(s.l)}: ${esc(v)}<button type="button" aria-label="حذف فیلتر ${esc(v)}" data-unslice="${s.k}" data-v="${esc(v)}">✕</button></span>`));
-  main.insertAdjacentHTML('beforeend', `<div class="topbar"><h1>${page === 'dashboard' ? 'نمای کلی مهد' : esc(meta.l)}</h1><div class="actions">
-      <button class="btn primary" type="button" data-add="payments">+ دریافت جدید</button>
-      <button class="btn" type="button" data-add="installments">+ چک یا قسط</button>
-      <button class="btn" type="button" data-add="children">+ کودک جدید</button></div></div>
-    ${fchips.length && page !== 'settings' ? `<div class="chips">${fchips.join('')}</div>` : ''}
+  const isDash = page === 'dashboard';
+  let metaChips = '';
+  if (isDash) {
+    const ev = DB.events.filter(e => jdnOf(e.date) != null && jdnOf(e.date) >= TODAY_JDN).sort((a, b) => jdnOf(a.date) - jdnOf(b.date))[0] || DB.events.find(e => !e.date && !same(e.status, 'برگزار شد'));
+    metaChips = `<div class="meta"><span class="chip">${esc(weekday(TODAY_JDN))} ${jHuman(TODAY)}</span>${ev ? `<a class="chip" href="#events" style="text-decoration:none">رویداد بعدی: ${esc(ev.title)}${ev.date ? ` · ${jHuman(ev.date, false)}` : ''}</a>` : ''}${fchips.join('')}</div>`;
+  }
+  main.insertAdjacentHTML('beforeend', `<div class="topbar"><h1>${isDash ? 'نمای کلی مهد' : esc(meta.l)}</h1>${metaChips}<div class="actions">
+      <button class="btn primary edit-act" type="button" data-add="payments">+ دریافت جدید</button>
+      <button class="btn edit-act" type="button" data-add="installments">+ چک یا قسط</button>
+      <button class="btn edit-act" type="button" data-add="children">+ کودک جدید</button>
+      ${isDash ? `<button class="btn" type="button" data-present>${PRESENT ? 'خروج از ارائه' : 'ارائه تمام‌صفحه'}</button>` : ''}</div></div>
+    ${fchips.length && !isDash && page !== 'settings' ? `<div class="chips">${fchips.join('')}</div>` : ''}
     ${STORAGE_OK ? '' : '<div class="banner">این مرورگر اجازه‌ی ذخیره‌سازی نمی‌دهد؛ تغییرات با بستن صفحه از بین می‌رود. از «تنظیمات ← دریافت خروجی اکسل» پشتیبان بگیرید.</div>'}`);
-  if (page === 'dashboard') renderDashboard(main);
+  if (isDash) renderDashboard(main);
   else if (page === 'settings') renderSettings(main);
   else { main.insertAdjacentHTML('beforeend', meta.ents.map(tableBlock).join('')); meta.ents.forEach(fillTable); }
-  window.scrollTo(0, scrollY);
+  main.scrollTop = scrollTop; window.scrollTo(0, winY);
+}
+function togglePresent() {
+  PRESENT = !PRESENT;
+  if (PRESENT) { try { const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
+  else if (document.fullscreenElement) { try { const r = document.exitFullscreen(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
+  render();
 }
 
 /* ================= events ================= */
@@ -1129,6 +1274,8 @@ document.addEventListener('click', e => {
   if (ds.collect) { e.stopPropagation(); collect(ds.collect); return; }
   if (ds.add) { openForm(ds.add, null); return; }
   if (ds.addFor) { const [ent, cid] = ds.addFor.split(':'); openForm(ent, null, { childId: cid }); return; }
+  if (ds.max) { openMax(ds.max); return; }
+  if (ds.present !== undefined) { togglePresent(); return; }
   if (ds.slice) { const sel = PREFS.filters[ds.slice] = PREFS.filters[ds.slice] || []; const i = sel.findIndex(v => same(v, ds.v)); if (i >= 0) sel.splice(i, 1); else sel.push(ds.v); savePrefs(); render(); return; }
   if (ds.unslice) { PREFS.filters[ds.unslice] = (PREFS.filters[ds.unslice] || []).filter(v => !same(v, ds.v)); savePrefs(); render(); return; }
   if (ds.clear) { PREFS.filters[ds.clear] = []; savePrefs(); render(); return; }
@@ -1144,6 +1291,7 @@ document.addEventListener('click', e => {
     if (!t.classList.contains('armed')) { t.classList.add('armed'); t.textContent = 'همه‌ی تغییرات پاک می‌شود؛ دوباره بزنید'; setTimeout(() => { if (t.isConnected) { t.classList.remove('armed'); t.textContent = 'بازگشت به داده‌های اولیه'; } }, 4000); return; }
     loadSeed(true); render(); toast('داده‌های اولیه دوباره بارگذاری شد.'); return;
   }
+  if (t.tagName === 'A' && t.getAttribute('href') === location.hash && $('#modal-root').innerHTML) closeModal();
 });
 document.addEventListener('submit', e => { if (e.target.id === 'm-form') { e.preventDefault(); submitForm(); } });
 document.addEventListener('input', e => {
@@ -1157,8 +1305,9 @@ document.addEventListener('change', async e => {
   if (MODAL && el.id === `f-${MODAL.ent}-childId`) updateChildHint(MODAL.ent);
   if (el.id === 'reimport' && el.files[0]) { if (await importFile(el.files[0])) render(); }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && MODAL) closeModal(); });
-window.addEventListener('hashchange', () => { closeModal(); window.scrollTo(0, 0); render(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modal-root').innerHTML) closeModal(); });
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && PRESENT) { PRESENT = false; render(); } });
+window.addEventListener('hashchange', () => { closeModal(); window.scrollTo(0, 0); const m = $('#main'); if (m) m.scrollTop = 0; render(); });
 
 /* ================= boot ================= */
 function loadSeed(force) {
@@ -1173,5 +1322,7 @@ function loadSeed(force) {
 load();
 if (!DB) loadSeed(false);
 render();
+// redraw once the Persian web font is ready so chart text is measured with it
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (DB && !$('#modal-root').innerHTML) render(); });
 })();
 </script>
