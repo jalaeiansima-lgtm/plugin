@@ -71,8 +71,8 @@ svg{display:block}
 /* ---------- main ---------- */
 main{min-width:0;height:100%;overflow-y:auto;padding-block:16px 28px;padding-inline:20px}
 .topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
-.topbar h1{margin:0;font-size:20px;font-weight:800;text-wrap:balance}
-.topbar .meta{display:flex;flex-wrap:wrap;gap:6px;margin-inline-end:auto;margin-inline-start:12px}
+.topbar h1{margin:0;font-size:20px;font-weight:800;white-space:nowrap}
+.topbar .meta{display:flex;flex-wrap:wrap;gap:6px;margin-inline-end:auto;margin-inline-start:12px;min-width:0}
 .topbar .actions{display:flex;flex-wrap:wrap;gap:8px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 12px}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:12px;color:var(--ink-2)}
@@ -104,35 +104,52 @@ main{min-width:0;height:100%;overflow-y:auto;padding-block:16px 28px;padding-inl
 a.kpi:hover{border-color:var(--line-strong)}
 
 .board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;grid-auto-rows:300px}
-.tile{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px 10px;box-shadow:var(--tile-glow);container-type:inline-size}
+.tile{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px 10px;box-shadow:var(--tile-glow);container-type:size;overflow:hidden}
+.board .w2{grid-column:span 2}
 .tile::before{content:"";position:absolute;inset:-1px -1px auto -1px;height:2px;border-radius:var(--r) var(--r) 0 0;background:linear-gradient(90deg,transparent,var(--tc,var(--c1)),transparent);opacity:.85}
 .tile>header{display:flex;align-items:center;gap:6px;min-height:24px}
-.tile h3{margin:0;font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;max-width:100%}
-.tile .sub{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
-.tile .tools{display:flex;gap:2px;margin-inline-start:auto;flex:none}
-.tile .sheet{font-size:10.5px;color:var(--ink-3);border:1px solid var(--line);border-radius:999px;padding:0 7px;white-space:nowrap;flex:none}
+.tile h3{margin:0;font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:3em}
+.tile .sub{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 0}
+.tile .tools{display:flex;align-items:center;gap:2px;margin-inline-start:auto;flex:none}
+.tile .sheet{font-size:10.5px;line-height:18px;color:var(--ink-3);border:1px solid var(--line);border-radius:999px;padding:0 8px;white-space:nowrap;flex:none}
 .tile .ilg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--ink-2);margin-top:2px}
 .tile .ilg span{display:inline-flex;align-items:center;gap:5px}
 .tile .ilg i{width:8px;height:8px;border-radius:2px;box-shadow:0 0 6px currentColor}
 .tile .body{flex:1;min-height:0;position:relative;margin-top:6px;display:flex;gap:10px;align-items:stretch}
-.tile .note{font-size:10.5px;color:var(--ink-3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .note{font-size:10.5px;line-height:1.35;color:var(--ink-3);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@container (max-height:205px){.tile .note{-webkit-line-clamp:1}}
+@container (max-height:170px){.tile .note{display:none}.tile .ilg{margin-top:0}}
 .cv{position:relative;flex:1;min-width:0;min-height:0}
 .cv canvas{position:absolute;inset:0}
 .cv .center{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;text-align:center}
-.cv .center b{display:block;font-size:clamp(11px,5.2cqw,16px);font-weight:800;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 12px rgba(255,90,200,.7)}
-.cv .center span{display:block;font-size:10.5px;color:var(--ink-3)}
+.cv .center>div{max-width:calc(var(--hole,100px) * .84)}
+.cv .center b{display:block;font-size:clamp(10px,calc(var(--hole,100px) * .2),20px);line-height:1.15;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 12px rgba(255,90,200,.7)}
+.cv .center span{display:block;font-size:clamp(8.5px,calc(var(--hole,100px) * .12),12px);line-height:1.3;color:var(--ink-3)}
+.cv.tiny-hole .center{display:none}
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--ink-3);font-size:12.5px;text-align:center;padding:8px;border:1px dashed var(--line);border-radius:10px}
 .empty .row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 
 /* html legend beside donuts */
-.lg{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0;flex:0 1 46%;font-size:11.5px}
+.lg{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0;flex:0 1 50%;font-size:11.5px;overflow:hidden}
 .lg li{display:grid;grid-template-columns:9px minmax(0,1fr) auto auto;align-items:center;gap:6px}
 .lg i{width:9px;height:9px;border-radius:3px;box-shadow:0 0 7px var(--lc)}
-.lg span{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg span{color:var(--ink-2);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .lg b{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
 .lg em{font-style:normal;color:var(--ink-3);font-size:10.5px;font-variant-numeric:tabular-nums;min-width:2.4em;text-align:left}
-@container (max-width:330px){.tile .sheet{display:none}.lg b{display:none}.lg{flex-basis:42%}}
-@container (max-width:190px){.tile .body.split{flex-direction:column}.lg{flex:none;gap:2px}}
+@container (max-width:340px){.tile .sheet{display:none}.lg b{display:none}.lg{flex-basis:56%}.lg li{gap:4px}}
+@container (max-height:200px){.lg{gap:2px;font-size:11px}}
+@container (max-width:150px){.tile .body.split{flex-direction:column}.lg{flex:none;gap:2px}}
+
+/* events list */
+.evl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;flex:1;min-height:0;overflow:auto}
+.evl .ev{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;width:100%;text-align:right;background:rgba(192,107,255,.07);border:1px solid var(--line);border-radius:10px;padding:7px 10px;cursor:pointer;color:inherit}
+.evl .ev:hover{border-color:var(--line-strong)}
+.evl b{grid-column:1;grid-row:1;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.evl .when{grid-column:1;grid-row:2;font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.evl .pill{grid-column:2;grid-row:1/3;align-self:center}
+.evl small{grid-column:1/-1;grid-row:3;font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@container (max-width:240px){.evl .pill{font-size:11px;padding:0 6px}}
+@container (max-height:200px){.evl small{display:none}}
 
 /* rings */
 .rings{flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;align-items:center;text-align:center}
@@ -140,7 +157,8 @@ a.kpi:hover{border-color:var(--line-strong)}
 .ring .dial{position:relative;width:min(96px,100%);aspect-ratio:1;max-width:100%}
 .ring .dial svg{width:100%;height:100%;overflow:visible}
 .ring .dial b{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(13px,4.6cqw,19px);font-weight:800;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 10px var(--rc)}
-.ring span{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap}
+.ring span{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+@container (max-width:260px){.ring span{font-size:11px}.ring small{font-size:10px}}
 .ring small{font-size:10.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
 /* pills */
@@ -158,7 +176,9 @@ a.kpi:hover{border-color:var(--line-strong)}
 .tbl-bar h3{margin:0;font-size:15px;font-weight:700;margin-inline-end:auto;display:flex;align-items:center;gap:8px;color:var(--ink)}
 .tbl-bar h3 .count{font-size:12px;font-weight:500;color:var(--ink-3)}
 .search{background:var(--field);border:1px solid var(--line);border-radius:9px;padding:6px 12px;width:220px;max-width:100%}
-.tbl-scroll{overflow-x:auto;border-radius:8px}
+.tbl-scroll{overflow:auto;max-height:calc(100vh - 170px);border-radius:8px}
+.modal .tbl-scroll{max-height:260px}
+@media (max-width:1500px){th,td{padding:7px 7px}.mini{width:42px}}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{position:sticky;top:0;background:var(--panel-solid);text-align:right;color:var(--ink-3);font-weight:600;font-size:12px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;user-select:none}
 th[data-sort]{cursor:pointer}
@@ -181,8 +201,12 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 .modal.max{width:min(1180px,100%);height:min(760px,calc(100% - 32px));display:flex;flex-direction:column}
 .modal.max .tile{flex:1;box-shadow:none;border:0;background:transparent;padding:0}
 .modal.max .tile h3{font-size:18px}
-.modal.max .lg{font-size:14px;gap:9px}
-.modal.max .cv .center b{font-size:26px}
+.modal.max .lg{font-size:14px;gap:10px;flex:0 0 auto;max-width:44%;margin-inline-end:auto;justify-content:center}
+.modal.max .lg li{grid-template-columns:12px auto auto auto;justify-content:start;column-gap:14px}
+.modal.max .lg i{width:12px;height:12px}
+.modal.max .lg b{display:inline}
+.modal.max .tile .note{-webkit-line-clamp:3;font-size:12.5px}
+.modal.max .evl b{font-size:15px}
 .modal.max .ring .dial{width:min(190px,100%)}
 .modal.max .ring .dial b{font-size:30px}
 .modal.max .ring span{font-size:15px}
@@ -233,19 +257,56 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 
 /* presentation mode: board only, full screen */
 #app.present{grid-template-columns:minmax(0,1fr)}
-#app.present .rail,#app.present .topbar .actions .edit-act{display:none}
+#app.present .rail,#app.present .topbar .actions .edit-act,#app.present .tile .edit-link,#app.present .empty .row{display:none}
 
 /* one-screen fit on desktop-sized windows */
-@media (min-width:1100px) and (min-height:600px){
-  main.fit{overflow:hidden;display:flex;flex-direction:column;padding-block:14px}
+@media (min-width:1100px) and (min-height:560px){
+  .topbar{flex-wrap:nowrap}
+  .topbar .meta{flex-wrap:nowrap;overflow:hidden}
+  .topbar .meta .chip{white-space:nowrap;flex:none}
+  main.fit{display:flex;flex-direction:column;padding-block:12px}
   main.fit .dash{flex:1;min-height:0}
-  main.fit .board{flex:1;min-height:0;grid-template-rows:repeat(var(--rows,3),minmax(0,1fr));grid-auto-rows:minmax(0,1fr)}
+  main.fit .board{flex:1;min-height:0;grid-template-columns:repeat(var(--cols,5),minmax(0,1fr));grid-template-rows:repeat(var(--rows,3),minmax(165px,1fr));grid-auto-rows:minmax(165px,1fr)}
+}
+/* presentation on a projector without the rail: still one page down to 900px wide */
+@media (min-width:900px) and (min-height:560px){
+  #app.present main.fit{display:flex;flex-direction:column;padding-block:12px}
+  #app.present main.fit .dash{flex:1;min-height:0}
+  #app.present .kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+  #app.present main.fit .board{flex:1;min-height:0;grid-template-columns:repeat(var(--cols,5),minmax(0,1fr));grid-template-rows:repeat(var(--rows,3),minmax(150px,1fr));grid-auto-rows:minmax(150px,1fr)}
+  #app.present .board .w2{grid-column:span 2}
+}
+/* shorter windows (laptops with browser chrome): tighten the chrome around the board */
+@media (min-width:900px) and (max-height:800px){
+  main{padding-block:10px 14px}
+  .topbar{margin-bottom:8px}
+  .topbar h1{font-size:17px}
+  .btn{padding:4px 11px}
+  .dash,.kpis,.board{gap:10px}
+  .kpi{padding:6px 12px}
+  .kpi .v{font-size:19px;line-height:1.2}
+  .tile{padding:8px 10px}
+}
+@media (min-width:900px) and (max-height:690px){.kpi .s{display:none}}
+/* rail: compact on shorter screens, slicer options become wrapping pills */
+@media (min-width:901px) and (max-height:1000px){
+  .rail{gap:12px;padding-block:14px 16px}
+  .brand{font-size:34px}
+  .brand small{margin-top:6px}
+  .today{padding:6px 10px}
+  .nav a{padding:4px 12px}
+  .slicers{gap:10px}
+  .slicer .opts{display:flex;flex-wrap:wrap;gap:4px}
+  .slicer .opt{width:auto;margin:0;padding:2px 9px;gap:6px}
 }
 @media (max-width:1280px){.kpi .v{font-size:20px}}
+@media (min-width:901px) and (max-width:1280px){.topbar .actions .edit-act:not(.primary){display:none}}
+@media (min-width:901px) and (max-width:1500px){#app{grid-template-columns:204px minmax(0,1fr)}.brand{font-size:34px}main{padding-inline:14px}}
 @media (max-width:1099px){
   .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
   .board{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:290px}
 }
+@media (max-width:899px){#app.present .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:900px){
   html,body{height:auto}
   #app{display:block;height:auto}
@@ -253,6 +314,7 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
   .nav{flex-direction:row;flex-wrap:wrap}
   .slicers{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
   main{height:auto;overflow:visible;padding-inline:16px}
+  .tbl-scroll{max-height:none}
   .set-grid{grid-template-columns:minmax(0,1fr)}
   .form-grid{grid-template-columns:minmax(0,1fr)}
   .fin{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -260,6 +322,7 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 }
 @media (max-width:620px){
   .board{grid-template-columns:minmax(0,1fr);grid-auto-rows:280px}
+  .board .w2{grid-column:auto}
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
   .toggles,.counts{grid-template-columns:minmax(0,1fr)}
 }
@@ -295,18 +358,22 @@ const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: r
 
 function money(n) {
   n = Number(n) || 0; const a = Math.abs(n);
-  if (a >= 1e9) return faNum(+(n / 1e9).toFixed(2)) + ' میلیارد';
-  if (a >= 1e6) return faNum(+(n / 1e6).toFixed(1)) + ' میلیون';
-  if (a >= 1e3) return faNum(+(n / 1e3).toFixed(0)) + ' هزار';
+  const b = +(n / 1e9).toFixed(2), m = +(n / 1e6).toFixed(1), k = +(n / 1e3).toFixed(0);
+  if (a >= 1e9 || Math.abs(m) >= 1000) return faNum(b) + ' میلیارد';
+  if (a >= 1e6 || Math.abs(k) >= 1000) return faNum(m) + ' میلیون';
+  if (a >= 1e3) return faNum(k) + ' هزار';
   return faNum(n);
 }
 const full = n => n == null || n === '' ? '—' : faNum(n);
 function parseMoney(v) {
   if (v == null || v === '') return null;
-  if (typeof v === 'number') return v;
-  const s = toEn(v).replace(/[,٬،\s]/g, '').replace(/[^\d.\-]/g, '');
-  if (s === '' || s === '-') return null;
-  const n = Number(s); return isFinite(n) ? n : null;
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+  const t = toEn(v).replace(/٫/g, '.').replace(/[,٬،\s]/g, '').replace(/تومان$/, '');
+  if (t === '') return null;
+  const m = t.match(/^(-?\d+(?:\.\d+)?)(میلیارد|میلیون|هزار)?$/);
+  if (!m) return null;
+  const mult = m[2] === 'میلیارد' ? 1e9 : m[2] === 'میلیون' ? 1e6 : m[2] === 'هزار' ? 1e3 : 1;
+  return Math.round(Number(m[1]) * mult);
 }
 
 /* ================= Jalali calendar ================= */
@@ -341,6 +408,7 @@ function jParse(s) {
   if (!m) return null; const o = { jy: +m[1], jm: +m[2], jd: +m[3] };
   if (o.jm < 1 || o.jm > 12 || o.jd < 1 || o.jd > 31 || o.jy < 1300 || o.jy > 1500) return null;
   if (o.jm > 6 && o.jd > 30) return null;
+  if (o.jm === 12 && o.jd === 30 && jalCal(o.jy, false).leap !== 0) return null;
   return o;
 }
 const normDate = s => { const o = jParse(s); return o ? jStr(o) : null; };
@@ -384,7 +452,7 @@ const SCHEMA = {
     { k: 'checkStatus', h: 'وضعیت چک‌ها', type: 'combo', def: 'هنوز تحویل نداده', opts: () => uniq(['هنوز تحویل نداده','تحویل داده', ...DB.children.map(c => c.checkStatus)]) },
     { k: 'notes', h: 'توضیحات', type: 'note' },
   ]},
-  tariffs: { sheet: 'تعرفه‌ها', title: 'تعرفه‌ها', one: 'تعرفه', prefix: 'T', pad: 2, fields: [
+  tariffs: { sheet: 'تعرفه‌ها', title: 'تعرفه‌ها', one: 'تعرفه', any: 'تعرفه‌ای', prefix: 'T', pad: 2, fields: [
     { k: 'id', h: null, type: 'id' },
     { k: 'group', h: 'گروه سنی', type: 'combo', req: 1, opts: () => AGE },
     { k: 'attendance', h: 'نوع حضور', type: 'combo', req: 1, opts: () => ATT },
@@ -428,7 +496,7 @@ const SCHEMA = {
     { k: 'remind', h: 'یادآوری چند روز قبل', type: 'int', def: 3 },
     { k: 'notes', h: 'توضیحات', type: 'note' },
   ]},
-  staff: { sheet: 'پرسنل', title: 'پرسنل', one: 'نیرو', prefix: 'S', pad: 2, fields: [
+  staff: { sheet: 'پرسنل', title: 'پرسنل', one: 'نیرو', any: 'نیرویی', prefix: 'S', pad: 2, fields: [
     { k: 'id', h: 'کد پرسنل', type: 'id' },
     { k: 'name', h: 'نام', req: 1 },
     { k: 'role', h: 'سمت', type: 'combo', def: 'مربی', opts: () => uniq(['مربی','پرستار/خدمتکار','مدیر','آشپز','راننده', ...DB.staff.map(s => s.role)]) },
@@ -445,7 +513,7 @@ const SCHEMA = {
     { k: 'method', h: 'روش', type: 'select', opts: () => METHODS, def: 'واریز' },
     { k: 'notes', h: 'توضیحات', type: 'note' },
   ]},
-  expenses: { sheet: 'خریدها و هزینه‌ها', title: 'خریدها و هزینه‌ها', one: 'هزینه', prefix: 'X', pad: 3, fields: [
+  expenses: { sheet: 'خریدها و هزینه‌ها', title: 'خریدها و هزینه‌ها', one: 'هزینه', any: 'هزینه‌ای', prefix: 'X', pad: 3, fields: [
     { k: 'id', h: 'کد هزینه', type: 'id' },
     { k: 'date', h: 'تاریخ', type: 'date', def: () => TODAY },
     { k: 'amount', h: 'مبلغ', type: 'money', req: 1 },
@@ -471,7 +539,7 @@ const SCHEMA = {
 const ENTS = Object.keys(SCHEMA);
 
 /* ================= storage ================= */
-const KEY_DATA = 'mahd-dashboard.v1.data', KEY_PREFS = 'mahd-dashboard.v2.prefs';
+const KEY_DATA = 'mahd-dashboard.v1.data', KEY_PREFS = 'mahd-dashboard.v2.prefs', KEY_EXTRA = 'mahd-dashboard.v1.extra';
 let DB = null, META = {}, STORAGE_OK = true;
 let PREFS = { skin: 'neon', hidden: {}, filters: { cls: [], group: [], attendance: [] } };
 const UI = { search: {}, sort: {} };
@@ -489,6 +557,8 @@ function save() {
   try { localStorage.setItem(KEY_DATA, JSON.stringify({ data: DB, meta: META })); STORAGE_OK = true; }
   catch (e) { STORAGE_OK = false; }
 }
+function saveExtra(x) { try { localStorage.setItem(KEY_EXTRA, JSON.stringify(x || null)); } catch (e) {} }
+function loadExtra() { try { return JSON.parse(localStorage.getItem(KEY_EXTRA) || 'null'); } catch (e) { return null; } }
 function savePrefs() { try { localStorage.setItem(KEY_PREFS, JSON.stringify(PREFS)); } catch (e) {} }
 
 /* ================= Excel import / export ================= */
@@ -529,31 +599,45 @@ function importWorkbook(wb) {
   const byName = (list, n) => list.find(x => same(x.name, n));
   for (const ent of ENTS) for (const f of SCHEMA[ent].fields) if (f.type === 'child' || f.type === 'staff') {
     const list = f.type === 'child' ? out.children : out.staff;
-    for (const r of out[ent]) { const n = r['_' + f.k + 'Name']; if (!r[f.k] && n) { const hit = byName(list, n); if (hit) r[f.k] = hit.id; } delete r['_' + f.k + 'Name']; }
+    for (const r of out[ent]) { const n = r['_' + f.k + 'Name']; if ((!r[f.k] || !list.some(x => x.id === r[f.k])) && n) { const hit = byName(list, n); if (hit) r[f.k] = hit.id; } delete r['_' + f.k + 'Name']; }
   }
   const prev = DB; DB = out;
   for (const ent of ENTS) for (const r of out[ent]) if (!r.id) r.id = nextId(ent);
   DB = prev;
-  return { data: out, report };
+  const isOurs = n => ENTS.some(e => same(SCHEMA[e].sheet, n));
+  const extra = { order: wb.SheetNames.slice(), sheets: wb.SheetNames.filter(n => !isOurs(n)).map(n => ({ name: n, rows: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: null }) })) };
+  return { data: out, report, extra };
+}
+function entSheet(ent) {
+  const sc = SCHEMA[ent], head = [];
+  for (const f of sc.fields) { if (f.h) head.push(f.h); if (f.nameH) head.push(f.nameH); }
+  const rows = [head];
+  for (const r of DB[ent]) {
+    const row = [];
+    for (const f of sc.fields) {
+      if (f.h) row.push(r[f.k] ?? null);
+      if (f.nameH) row.push(f.type === 'child' ? (childById(r[f.k])?.name ?? null) : (staffById(r[f.k])?.name ?? null));
+    }
+    rows.push(row);
+  }
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = head.map(h => ({ wch: Math.max(10, String(h).length + 4) }));
+  return ws;
 }
 function buildWorkbook() {
-  const wb = XLSX.utils.book_new();
-  for (const ent of ENTS) {
-    const sc = SCHEMA[ent], head = [];
-    for (const f of sc.fields) { if (f.h) head.push(f.h); if (f.nameH) head.push(f.nameH); }
-    const rows = [head];
-    for (const r of DB[ent]) {
-      const row = [];
-      for (const f of sc.fields) {
-        if (f.h) row.push(r[f.k] ?? null);
-        if (f.nameH) row.push(f.type === 'child' ? (childById(r[f.k])?.name ?? null) : (staffById(r[f.k])?.name ?? null));
-      }
-      rows.push(row);
+  const wb = XLSX.utils.book_new(), extra = loadExtra() || { order: [], sheets: [] };
+  const order = (extra.order || []).slice();
+  for (const e of ENTS) if (!order.some(n => same(n, SCHEMA[e].sheet))) order.push(SCHEMA[e].sheet);
+  for (const name of order) {
+    const ent = ENTS.find(e => same(SCHEMA[e].sheet, name));
+    let ws = null;
+    if (ent) ws = entSheet(ent);
+    else {
+      const x = (extra.sheets || []).find(sh => sh.name === name); if (!x) continue;
+      ws = XLSX.utils.aoa_to_sheet(x.rows.map(r => r.map(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v) ? new Date(v) : v)), { cellDates: true });
     }
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = head.map(h => ({ wch: Math.max(10, String(h).length + 4) }));
     ws['!views'] = [{ RTL: true }];
-    XLSX.utils.book_append_sheet(wb, ws, sc.sheet);
+    XLSX.utils.book_append_sheet(wb, ws, ent ? SCHEMA[ent].sheet : name);
   }
   wb.Workbook = { Views: [{ RTL: true }] };
   return wb;
@@ -583,9 +667,9 @@ async function importFile(file) {
   if (!window.XLSX) { toast('کتابخانه‌ی اکسل بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.'); return false; }
   try {
     const wb = await readWorkbookFile(file);
-    const { data, report } = importWorkbook(wb);
+    const { data, report, extra } = importWorkbook(wb);
     if (!data.children.length) { toast('شیت «کودکان» در این فایل پیدا نشد یا خالی است.'); return false; }
-    DB = data; META = { importedAt: new Date().toISOString(), source: file.name, report };
+    DB = data; META = { importedAt: new Date().toISOString(), source: file.name, report }; saveExtra(extra);
     save(); toast(`اطلاعات از «${file.name}» وارد شد: ${faNum(data.children.length)} کودک، ${faNum(data.payments.length)} دریافت.`);
     return true;
   } catch (e) { toast('این فایل خوانده نشد. یک فایل ‎.xlsx‎ با ساختار شیت‌های مهد انتخاب کنید.'); return false; }
@@ -624,19 +708,21 @@ function computeFin() {
 const fin = id => FIN.get(id) || { expected: 0, received: 0, remaining: 0, scheduled: 0, unscheduled: 0, ratio: null };
 
 /* ================= slicers ================= */
+const NO_CLS = 'بدون کلاس';
+const clsOf = c => (c.cls == null || String(c.cls).trim() === '') ? NO_CLS : c.cls;
 const SLICERS = [
-  { k: 'cls', l: 'کلاس', opts: () => uniq(DB.children.map(c => c.cls)) },
-  { k: 'group', l: 'گروه سنی', opts: () => uniq([...AGE.filter(a => DB.children.some(c => same(c.group, a))), ...DB.children.map(c => c.group)]) },
-  { k: 'attendance', l: 'نوع حضور', opts: () => uniq(DB.children.map(c => c.attendance)) },
+  { k: 'cls', l: 'کلاس', get: clsOf, opts: () => uniq(DB.children.map(clsOf)) },
+  { k: 'group', l: 'گروه سنی', get: c => c.group, opts: () => uniq([...AGE.filter(a => DB.children.some(c => same(c.group, a))), ...DB.children.map(c => c.group)]) },
+  { k: 'attendance', l: 'نوع حضور', get: c => c.attendance, opts: () => uniq(DB.children.map(c => c.attendance)) },
 ];
 const filtersOn = () => SLICERS.some(s => (PREFS.filters[s.k] || []).length);
-function kidPasses(c) { return SLICERS.every(s => { const sel = PREFS.filters[s.k] || []; return !sel.length || sel.some(v => same(v, c[s.k])); }); }
+function kidPasses(c) { return SLICERS.every(s => { const sel = PREFS.filters[s.k] || []; return !sel.length || sel.some(v => same(v, s.get(c))); }); }
 function scope() {
   const kids = DB.children.filter(kidPasses), ids = new Set(kids.map(c => c.id)), on = filtersOn();
   return {
     kids, on,
-    payments: DB.payments.filter(p => p.childId ? ids.has(p.childId) : !on),
-    installments: DB.installments.filter(i => i.childId ? ids.has(i.childId) : !on),
+    payments: on ? DB.payments.filter(p => p.childId && ids.has(p.childId)) : DB.payments,
+    installments: on ? DB.installments.filter(i => i.childId && ids.has(i.childId)) : DB.installments,
   };
 }
 
@@ -667,7 +753,7 @@ function cellFor(ent, f, r) {
   const v = r[f.k];
   switch (f.type) {
     case 'money': case 'int': return { html: full(v), cls: 'num', sort: v ?? -Infinity };
-    case 'date': case 'month': return { html: v ? faDigits(v) : '<span class="muted">—</span>', cls: 'num', sort: v || '' };
+    case 'date': case 'month': return { html: v ? esc(faDigits(v)) : '<span class="muted">—</span>', cls: 'num', sort: v || '' };
     case 'child': { const c = childById(v); return { html: c ? `<span class="name">${esc(c.name)}</span>` : `<span class="muted">${esc(v || '—')}</span>`, sort: c ? c.name : '' }; }
     case 'staff': { const s = staffById(v); return { html: s ? `<span class="name">${esc(s.name)}</span>` : `<span class="muted">${esc(v || '—')}</span>`, sort: s ? s.name : '' }; }
     case 'note': return { html: esc(v || ''), cls: 'note', sort: v || '' };
@@ -688,7 +774,7 @@ const COLS = {
     { k: 'expected', l: 'تعهد شهریه', money: true, cell: r => ({ html: full(fin(r.id).expected), cls: 'num', sort: fin(r.id).expected }), val: r => fin(r.id).expected },
     { k: 'received', l: 'دریافت‌شده', money: true, cell: r => ({ html: full(fin(r.id).received), cls: 'num', sort: fin(r.id).received }), val: r => fin(r.id).received },
     { k: 'remaining', l: 'مانده', money: true, cell: r => { const f = fin(r.id); return { html: f.expected && !f.remaining ? pill('good', 'تسویه', '✓') : full(f.remaining), cls: 'num', sort: f.remaining }; }, val: r => fin(r.id).remaining },
-    { k: 'ratio', l: 'پیشرفت', cell: r => { const f = fin(r.id); if (f.ratio == null) return { html: '<span class="muted">معاف</span>', sort: -1 }; return { html: `<span class="mini"><i style="width:${(f.ratio * 100).toFixed(0)}%"></i></span>${faNum(Math.round(f.ratio * 100))}٪`, cls: 'num', sort: f.ratio }; } },
+    { k: 'ratio', l: 'پیشرفت', cell: r => { const f = fin(r.id); if (f.ratio == null) return { html: isExempt(r) ? '<span class="muted">معاف</span>' : pill('warn', 'بدون تعرفه', '!'), sort: -1 }; return { html: `<span class="mini"><i style="width:${(f.ratio * 100).toFixed(0)}%"></i></span>${faNum(Math.round(f.ratio * 100))}٪`, cls: 'num', sort: f.ratio }; } },
     fieldCol('children', 'insurance', 'بیمه'), fieldCol('children', 'checkStatus', 'چک‌ها'), fieldCol('children', 'status'),
   ],
   installments: () => [
@@ -722,7 +808,7 @@ const hGrad = (color, lo = .25) => ctx => { const ch = ctx.chart, a = ch.chartAr
 const lineGrad = (c1, c2) => ctx => { const ch = ctx.chart, a = ch.chartArea; if (!a) return c2; const g = ch.ctx.createLinearGradient(a.left, 0, a.right, 0); g.addColorStop(0, c2); g.addColorStop(1, c1); return g; };
 const areaGrad = color => ctx => { const ch = ctx.chart, a = ch.chartArea; if (!a) return alpha(color, .2); const g = ch.ctx.createLinearGradient(0, a.top, 0, a.bottom); g.addColorStop(0, alpha(color, .45)); g.addColorStop(1, alpha(color, 0)); return g; };
 
-/* neon glow behind every dataset, and value labels at bar tips */
+/* neon glow behind every dataset; value labels at bar tips (skipped when bars are too thin to label) */
 const neonGlow = {
   id: 'neonGlow',
   beforeDatasetDraw(chart, args, o) { if (!o || !o.blur) return; const ds = chart.data.datasets[args.index], c = chart.ctx; c.save(); c.shadowBlur = o.blur; c.shadowColor = ds.glow || 'rgba(192,107,255,.7)'; },
@@ -732,14 +818,20 @@ const valueLabels = {
   id: 'valueLabels',
   afterDatasetsDraw(chart, args, o) {
     if (!o || !o.on) return;
-    const c = chart.ctx, hz = chart.options.indexAxis === 'y', sets = chart.data.datasets, last = sets.length - 1;
-    c.save(); c.font = `600 ${o.size || 11}px ${FONT()}`; c.fillStyle = o.color; c.shadowBlur = 0;
+    const c = chart.ctx, hz = chart.options.indexAxis === 'y', sets = chart.data.datasets, last = sets.length - 1, size = o.size || 11;
+    c.save(); c.font = `600 ${size}px ${FONT()}`; c.fillStyle = o.color; c.shadowBlur = 0;
+    const placed = [];
     sets.forEach((ds, di) => {
       if (o.stackTotal && di !== last) return;
       const meta = chart.getDatasetMeta(di); if (meta.hidden) return;
       meta.data.forEach((el, i) => {
         const v = o.stackTotal ? sets.reduce((a, d, k) => a + (chart.getDatasetMeta(k).hidden ? 0 : (+d.data[i] || 0)), 0) : +ds.data[i];
         if (!v) return;
+        const thick = hz ? el.height : el.width;
+        if (hz && thick < size * .8) return;
+        const pos = hz ? el.y : el.x;
+        if (placed.some(p => Math.abs(p - pos) < (hz ? size : size * 1.6))) return;
+        placed.push(pos);
         const txt = o.fmt ? o.fmt(v, i) : faNum(v);
         if (hz) { c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillText(txt, el.x - 6, el.y); }
         else { c.textAlign = 'center'; c.textBaseline = 'bottom'; c.fillText(txt, el.x, el.y - 4); }
@@ -748,10 +840,20 @@ const valueLabels = {
     c.restore();
   },
 };
+/* exposes the donut hole size to CSS so the centre label always fits inside it */
+const holeVar = {
+  id: 'holeVar',
+  afterUpdate(chart) {
+    const cv = chart.canvas.closest('.cv'), ctl = chart.getDatasetMeta(0).controller;
+    if (!cv || !ctl || !ctl.innerRadius) return;
+    const d = Math.round(ctl.innerRadius * 2);
+    cv.style.setProperty('--hole', d + 'px'); cv.classList.toggle('tiny-hole', d < 56);
+  },
+};
 let CHART_READY = false;
 function setChartDefaults() {
   if (!window.Chart) return false;
-  if (!CHART_READY) { Chart.register(neonGlow, valueLabels); CHART_READY = true; }
+  if (!CHART_READY) { Chart.register(neonGlow, valueLabels, holeVar); CHART_READY = true; }
   const t = tok(); Chart.defaults.font.family = FONT(); Chart.defaults.font.size = 11; Chart.defaults.color = t.ink2;
   return true;
 }
@@ -761,7 +863,7 @@ function tipOpts(t, o = {}) {
     callbacks: { label: ctx => {
       const v = o.arc ? ctx.parsed : ctx.parsed[hz ? 'x' : 'y'];
       let s = ` ${o.arc ? ctx.label : (ctx.dataset.label || '')}: ${o.money ? full(v) + ' تومان' : faNum(v) + (o.unit ? ' ' + o.unit : '')}`;
-      if (o.arc) { const tt = ctx.dataset.data.reduce((a, b) => a + (+b || 0), 0); s += ` (${faNum(Math.round(pct(v, tt) * 100))}٪)`; }
+      if (o.arc) { const tt = ctx.dataset.data.reduce((a, b) => a + (+b || 0), 0); s += ` (${pctText(v, tt)})`; }
       return s;
     } } };
 }
@@ -769,7 +871,10 @@ function baseOpts(t, o = {}) {
   const hz = !!o.horizontal;
   const tickV = o.millions ? (v => faNum(+(v / 1e6).toFixed(Math.abs(v) < 1e7 && v % 1e6 ? 1 : 0))) : (v => faNum(v));
   const valueAxis = { beginAtZero: true, stacked: !!o.stacked, grace: o.grace || '8%', grid: { color: t.grid, drawTicks: false }, border: { display: false }, ticks: { color: t.ink3, callback: tickV, maxTicksLimit: 4, padding: 6, precision: 0, font: { size: 10.5 } } };
-  const catAxis = { stacked: !!o.stacked, grid: { display: false }, border: { color: t.grid }, ticks: { color: t.ink2, padding: 4, autoSkip: true, autoSkipPadding: 10, maxRotation: 0, font: { size: 11 }, ...(o.xTicks ? { maxTicksLimit: o.xTicks } : {}) } };
+  // every category label is drawn; only the 30-day line thins its date labels
+  const catFont = o.xTicks ? { size: 11 } : (ctx => { const ch = ctx.chart, n = (ch.data.labels || []).length || 1; return { size: hz ? Math.max(8, Math.min(10.5, (ch.height - 8) / n * .62)) : Math.max(8.5, Math.min(10.5, ch.width / n / 4.2)) }; });
+  const catAxis = { stacked: !!o.stacked, grid: { display: false }, border: { color: t.grid }, ticks: { color: t.ink2, padding: 3, autoSkip: !!o.xTicks, autoSkipPadding: 10, maxRotation: 0, font: catFont, ...(o.xTicks ? { maxTicksLimit: o.xTicks } : {}) } };
+  if (hz && o.labels) { valueAxis.ticks = { ...valueAxis.ticks, display: false }; valueAxis.grid = { ...valueAxis.grid, display: false }; }
   return {
     responsive: true, maintainAspectRatio: false, animation: { duration: reduceMotion ? 0 : 550 },
     indexAxis: hz ? 'y' : 'x', interaction: { mode: 'index', intersect: false, axis: hz ? 'y' : 'x' },
@@ -783,11 +888,11 @@ function baseOpts(t, o = {}) {
     scales: hz ? { x: { ...valueAxis, reverse: true }, y: { ...catAxis, position: 'right' } } : { x: { ...catAxis, reverse: true }, y: { ...valueAxis, position: 'right' } },
   };
 }
-const barDs = (label, data, color, bg, extra = {}) => ({ label, data, backgroundColor: bg || color, hoverBackgroundColor: color, borderRadius: 6, borderSkipped: 'start', maxBarThickness: 34, categoryPercentage: .72, barPercentage: .86, glow: color, ...extra });
+const barDs = (label, data, color, bg, extra = {}) => ({ label, data, backgroundColor: bg || color, hoverBackgroundColor: color, borderRadius: 6, borderSkipped: 'start', maxBarThickness: 34, categoryPercentage: .74, barPercentage: .88, glow: color, ...extra });
 function donutCfg(t, labels, values, colors, o = {}) {
   return { type: o.pie ? 'pie' : 'doughnut',
-    data: { labels, datasets: [{ data: values, backgroundColor: colors, hoverBackgroundColor: colors, borderColor: t.panelSolid, borderWidth: 2, hoverOffset: 6, glow: 'rgba(200,110,255,.75)' }] },
-    options: { responsive: true, maintainAspectRatio: false, cutout: o.pie ? 0 : '70%', animation: { duration: reduceMotion ? 0 : 550 }, layout: { padding: 10 },
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, hoverBackgroundColor: colors, borderColor: t.panelSolid, borderWidth: 2, hoverOffset: 5, glow: 'rgba(200,110,255,.75)' }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: o.pie ? 0 : '70%', animation: { duration: reduceMotion ? 0 : 550 }, layout: { padding: 6 },
       plugins: { legend: { display: false }, tooltip: tipOpts(t, { arc: true, money: o.money, unit: o.unit }), neonGlow: { blur: 14 }, valueLabels: { on: false } } } };
 }
 function mk(id, cfg) {
@@ -795,8 +900,11 @@ function mk(id, cfg) {
   if (charts[id]) charts[id].destroy();
   try { charts[id] = new Chart(el, cfg); } catch (e) { const box = el.closest('.body'); if (box) box.innerHTML = '<div class="empty">نمایش این نمودار ممکن نشد.</div>'; }
 }
-const lgHtml = (items, fmt) => { const tot = sum(items, x => x.v); return `<ul class="lg">${items.map(x => `<li style="--lc:${x.c}"><i style="background:${x.c}"></i><span title="${esc(x.l)}">${esc(x.l)}</span><b>${fmt(x.v)}</b><em>${faNum(Math.round(pct(x.v, tot) * 100))}٪</em></li>`).join('')}</ul>`; };
+function pctText(v, tot) { const p = pct(v, tot) * 100; return v > 0 && p < 1 ? '<۱٪' : faNum(Math.round(p)) + '٪'; }
+const lgHtml = (items, fmt) => { const tot = sum(items, x => x.v); return `<ul class="lg">${items.map(x => `<li style="--lc:${x.c}"><i style="background:${x.c}"></i><span title="${esc(x.l)}">${esc(x.l)}</span><b>${fmt(x.v)}</b><em>${pctText(x.v, tot)}</em></li>`).join('')}</ul>`; };
 const ilg = items => `<div class="ilg">${items.map(x => `<span style="color:${x.c}"><i style="background:${x.c}"></i><span style="color:var(--ink-2)">${esc(x.l)}</span></span>`).join('')}</div>`;
+/* '۹۰۸٫۱ میلیون' → number and unit on two lines for donut centres */
+function moneyCenter(n, caption) { const s = money(n), i = s.lastIndexOf(' '); return i > 0 ? `<div><b>${s.slice(0, i)}</b><span>${s.slice(i + 1)} · ${caption}</span></div>` : `<div><b>${s}</b><span>${caption}</span></div>`; }
 
 /* ================= rings ================= */
 let RING_N = 0;
@@ -815,7 +923,7 @@ function ring(p, c1, c2, label, sub) {
 /* ================= dashboard: one chart per Excel sheet, all on one screen ================= */
 const TILE_LIST = [
   { id: 'kpis', l: 'کارت‌های خلاصه (بالای صفحه)' },
-  { id: 'trend', l: 'روند دریافت‌ها' },
+  { id: 'trend', l: 'دریافت‌های ۳۰ روز اخیر' },
   { id: 'category', l: 'دریافت به تفکیک دسته' },
   { id: 'method', l: 'روش دریافت' },
   { id: 'rings', l: 'شاخص‌های کلیدی' },
@@ -823,126 +931,162 @@ const TILE_LIST = [
   { id: 'ageAtt', l: 'گروه سنی و نوع حضور' },
   { id: 'services', l: 'خدمات جانبی' },
   { id: 'tuition', l: 'ترکیب تعهد شهریه' },
+  { id: 'staff', l: 'پرسنل' },
   { id: 'dues', l: 'سررسید چک و اقساط' },
   { id: 'tariffs', l: 'تعرفه‌ها' },
-  { id: 'staff', l: 'پرسنل و حقوق' },
-  { id: 'costs', l: 'هزینه‌ها و حقوق ماهانه' },
+  { id: 'costs', l: 'هزینه و حقوق ۶ ماه' },
+  { id: 'events', l: 'رویدادها' },
 ];
 const shown = id => !PREFS.hidden[id];
 const ICON_EDIT = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10.8 2.7l2.5 2.5-7.6 7.6H3.2v-2.5z"/></svg>';
 const ICON_MAX = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg>';
 
 function dashModel() {
-  const S = scope(), active = S.kids.filter(isActive);
+  const S = scope(), active = S.kids.filter(isActive), activeIds = new Set(active.map(c => c.id));
   const tot = { expected: 0, received: 0, scheduled: 0, unscheduled: 0, remaining: 0 };
   for (const c of active) { const f = fin(c.id); for (const k in tot) tot[k] += f[k]; }
   tot.collected = tot.expected - tot.remaining;
-  const todayPays = S.payments.filter(p => normDate(p.date) === TODAY);
   const staffActive = DB.staff.filter(s => !s.status || same(s.status, 'فعال'));
-  const pend = S.installments.filter(i => isPending(i.status));
+  // cheques and installments that still matter: pending, and not belonging to a withdrawn/inactive child
+  const pend = S.installments.filter(i => isPending(i.status) && (!i.childId || activeIds.has(i.childId) || !childById(i.childId)));
   const dueOf = i => jdnOf(i.due);
   const overdue = pend.filter(i => dueOf(i) != null && dueOf(i) < TODAY_JDN);
   const soon = pend.filter(i => dueOf(i) != null && dueOf(i) >= TODAY_JDN && dueOf(i) - TODAY_JDN <= 7);
   const insReqL = active.filter(c => !same(c.insurance, 'معاف') && !isExempt(c));
   const chkReqL = active.filter(c => { const s = norm(c.checkStatus); return norm(c.payMode).includes(norm('چک')) && !s.startsWith(norm('لازم')) && !s.includes(norm('نمی‌دهد')); });
   const atts = uniq([...ATT, ...active.map(c => c.attendance)]).filter(a => active.some(c => same(c.attendance, a)));
+  // every receipt once: recorded payments + cheques/installments marked collected (dated by their collection date)
+  const receipts = [
+    ...S.payments.map(p => ({ date: p.date, amount: +p.amount || 0, method: p.method || 'نامشخص', category: p.category })),
+    ...S.installments.filter(i => isDone(i.status)).map(i => ({ date: i.doneDate, amount: +i.amount || 0, method: same(i.type, 'چک') ? 'چک' : 'نامشخص', category: 'شهریه' })),
+  ];
   const days = []; for (let d = TODAY_JDN - 29; d <= TODAY_JDN; d++) days.push(d);
-  const byDay = {}; for (const p of S.payments) { const d = jdnOf(p.date); if (d != null) byDay[d] = (byDay[d] || 0) + (+p.amount || 0); }
+  const byDay = {}; for (const r of receipts) { const d = jdnOf(r.date); if (d != null) byDay[d] = (byDay[d] || 0) + r.amount; }
   const dated = pend.filter(i => dueOf(i) != null), monthOfDue = i => normDate(i.due).slice(0, 7);
   const months = uniq(dated.map(monthOfDue)).sort();
   const known = PAY_CATS.slice(0, -1);
-  const catVals = PAY_CATS.map(cat => sum(S.payments.filter(p => cat === 'سایر' ? !known.some(c => same(c, p.category)) : same(p.category, cat)), p => p.amount)
-    + (cat === 'شهریه' ? sum(S.installments.filter(i => isDone(i.status)), i => i.amount) : 0));
-  const methods = uniq([...METHODS, ...S.payments.map(p => p.method)]);
-  const methVals = methods.map(m => sum(S.payments.filter(p => same(p.method, m) || (m === 'نامشخص' && !p.method)), p => p.amount));
+  const catVals = PAY_CATS.map(cat => sum(receipts.filter(r => cat === 'سایر' ? !known.some(c => same(c, r.category)) : same(r.category, cat)), r => r.amount));
+  const methods = uniq([...METHODS.filter(m => m !== 'نامشخص'), ...receipts.map(r => r.method), 'نامشخص']);
+  const methVals = methods.map(m => sum(receipts.filter(r => same(r.method, m)), r => r.amount));
   const costMonths = []; { const j = d2j(TODAY_JDN); let y = j.jy, m = j.jm; for (let k = 0; k < 6; k++) { costMonths.unshift(`${y}/${pad2(m)}`); if (--m < 1) { m = 12; y--; } } }
   const salKey = s => s.month || (normDate(s.date) || '').slice(0, 7);
-  const futureEvents = DB.events.filter(e => jdnOf(e.date) != null && jdnOf(e.date) >= TODAY_JDN).sort((a, b) => jdnOf(a.date) - jdnOf(b.date));
-  const openEvents = DB.events.filter(e => !e.date && !same(e.status, 'برگزار شد'));
+  const isToday = d => normDate(d) === TODAY;
   return {
-    S, active, tot, todayPays, staffActive, pend, overdue, soon,
+    S, active, tot, staffActive, pend, overdue, soon,
+    todayTuition: sum(receipts.filter(r => same(r.category, 'شهریه') && isToday(r.date)), r => r.amount),
     insReq: insReqL.length, insGot: insReqL.filter(c => same(c.insurance, 'دریافت شد')).length,
     chkReq: chkReqL.length, chkGot: chkReqL.filter(c => norm(c.checkStatus).startsWith(norm('تحویل داده'))).length,
     noPay: active.filter(c => fin(c.id).expected > 0 && fin(c.id).received === 0).length,
+    noTariff: active.filter(c => !isExempt(c) && c.agreedFee == null && !tariffFor(c)).length,
     atts, att: ATT.map(a => active.filter(c => same(c.attendance, a)).length),
     roles: uniq(staffActive.map(s => s.role)),
-    days, dailyVals: days.map(d => byDay[d] || 0), undated: S.payments.filter(p => jdnOf(p.date) == null),
+    days, dailyVals: days.map(d => byDay[d] || 0),
+    undated: receipts.filter(r => jdnOf(r.date) == null), future: receipts.filter(r => { const d = jdnOf(r.date); return d != null && d > TODAY_JDN; }),
     months, dueChk: months.map(m => sum(dated.filter(i => monthOfDue(i) === m && same(i.type, 'چک')), i => i.amount)), dueCash: months.map(m => sum(dated.filter(i => monthOfDue(i) === m && !same(i.type, 'چک')), i => i.amount)),
     catVals, catTotal: sum(catVals, v => v), methods, methVals,
-    classes: uniq(active.map(c => c.cls)).map(cl => ({ cl, n: active.filter(c => same(c.cls, cl)).length })).sort((a, b) => b.n - a.n),
+    classes: uniq(active.map(clsOf)).map(cl => ({ cl, n: active.filter(c => same(clsOf(c), cl)).length })).sort((a, b) => b.n - a.n),
     groups: uniq([...AGE, ...active.map(c => c.group)]).filter(g => active.some(c => same(c.group, g))),
     costMonths, salByM: costMonths.map(m => sum(DB.salaries.filter(s => salKey(s) === m), s => s.amount)), expByM: costMonths.map(m => sum(DB.expenses.filter(e => (normDate(e.date) || '').startsWith(m)), e => e.amount)),
     salThisMonth: sum(DB.salaries.filter(s => salKey(s) === TODAY.slice(0, 7)), s => s.amount),
-    nextEvent: futureEvents[0] || null, openEvent: openEvents[0] || null,
   };
+}
+function nextEventOf() {
+  const dated = DB.events.filter(e => jdnOf(e.date) != null && jdnOf(e.date) >= TODAY_JDN && !same(e.status, 'برگزار شد')).sort((a, b) => jdnOf(a.date) - jdnOf(b.date));
+  if (dated.length) return { e: dated[0], dated: true };
+  const open = DB.events.find(e => !e.date && !same(e.status, 'برگزار شد'));
+  return open ? { e: open, dated: false } : null;
 }
 function monthLabels(keys) {
   const years = new Set(keys.map(k => k.slice(0, 4)));
   return keys.map(k => MONTHS[+k.slice(5, 7) - 1] + (years.size > 1 ? ' ' + faDigits(k.slice(2, 4)) : ''));
 }
+function eventPill(s) {
+  const n = norm(s);
+  if (!s) return pill('', 'بدون وضعیت');
+  if (n === norm('برگزار شد')) return pill('good', s, '✓');
+  if (n === norm('قطعی')) return pill('info', s, '◷');
+  if (n.includes(norm('نشده'))) return pill('warn', s, '!');
+  return pill('info', s);
+}
 function buildTiles(M, t) {
-  const C = t.c, T = [];
+  const C = t.c, T = [], none = s => M.S.on ? 'با فیلترهای فعلی موردی نیست.' : s;
   const m1 = v => faNum(+(v / 1e6).toFixed(1));
-  T.push({ id: 'trend', t: 'روند دریافت‌ها', sub: '۳۰ روز اخیر · میلیون تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[2],
-    empty: M.dailyVals.some(v => v) ? '' : 'در ۳۰ روز اخیر دریافتی تاریخ‌دار ثبت نشده است.',
-    note: M.undated.length ? `${faNum(M.undated.length)} دریافت بدون تاریخ (${money(sum(M.undated, p => p.amount))} تومان) در این نمودار نیامده است.` : '',
+  const trendNote = [
+    M.undated.length ? `${faNum(M.undated.length)} دریافت بدون تاریخ (${money(sum(M.undated, r => r.amount))} تومان) در نمودار نیامده` : '',
+    M.future.length ? `${faNum(M.future.length)} دریافت با تاریخ آینده` : '',
+  ].filter(Boolean).join(' · ');
+  T.push({ id: 'trend', span: 2, t: 'دریافت‌های ۳۰ روز اخیر', sub: 'میلیون تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[2],
+    empty: M.dailyVals.some(v => v) ? '' : none('در ۳۰ روز اخیر دریافتی تاریخ‌دار ثبت نشده است.'), note: trendNote,
     cfg: () => {
-      const o = baseOpts(t, { millions: true, money: true, blur: 16, xTicks: 6 });
-      o.plugins.tooltip.callbacks.title = items => jHuman(fromJdn(M.days[items[0].dataIndex]));
+      const o = baseOpts(t, { millions: true, money: true, blur: 16, xTicks: 8 });
+      o.plugins.tooltip.callbacks.title = items => `${weekday(M.days[items[0].dataIndex])} ${jHuman(fromJdn(M.days[items[0].dataIndex]))}`;
       return { type: 'line', data: { labels: M.days.map(d => { const j = d2j(d); return `${faNum(j.jd)} ${MONTHS[j.jm - 1]}`; }),
         datasets: [{ label: 'دریافتی', data: M.dailyVals, borderColor: lineGrad(C[0], C[2]), backgroundColor: areaGrad(C[2]), fill: 'origin', tension: .38, borderWidth: 2.5,
           pointRadius: M.dailyVals.map(v => v ? 3 : 0), pointHoverRadius: 5, pointBackgroundColor: '#fff', pointBorderColor: C[2], pointBorderWidth: 2, glow: C[2] }] }, options: o };
     } });
   const catItems = PAY_CATS.map((l, i) => ({ l, v: M.catVals[i], c: i < 5 ? C[i] : t.neutral })).filter(x => x.v > 0);
   T.push({ id: 'category', t: 'دریافت به تفکیک دسته', sub: 'تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[0],
-    empty: M.catTotal ? '' : 'دریافتی ثبت نشده است.', center: `<div><b>${money(M.catTotal)}</b><span>کل دریافت</span></div>`, side: lgHtml(catItems, money),
+    empty: M.catTotal ? '' : none('دریافتی ثبت نشده است.'), center: moneyCenter(M.catTotal, 'کل'), side: lgHtml(catItems, money),
     cfg: () => donutCfg(t, catItems.map(x => x.l), catItems.map(x => x.v), catItems.map(x => x.c), { money: true }) });
-  const methItems = M.methods.map((l, i) => ({ l, v: M.methVals[i], c: same(l, 'نامشخص') ? t.neutral : C[i % 5] })).filter(x => x.v > 0);
-  T.push({ id: 'method', t: 'روش دریافت', sub: 'دریافت‌های ثبت‌شده', sheet: 'دریافت‌ها', page: 'payments', tc: C[1],
-    empty: methItems.length ? '' : 'دریافتی ثبت نشده است.', side: lgHtml(methItems, money),
+  let ci = 0;
+  const methItems = M.methods.map(l => ({ l, v: M.methVals[M.methods.indexOf(l)], c: same(l, 'نامشخص') ? t.neutral : C[(ci++) % 5] })).filter(x => x.v > 0);
+  T.push({ id: 'method', t: 'روش دریافت', sub: 'تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[1],
+    empty: methItems.length ? '' : none('دریافتی ثبت نشده است.'), side: lgHtml(methItems, money),
     cfg: () => donutCfg(t, methItems.map(x => x.l), methItems.map(x => x.v), methItems.map(x => x.c), { money: true, pie: true }) });
   T.push({ id: 'rings', t: 'شاخص‌های کلیدی', sub: 'کودکان فعال', sheet: 'کودکان', page: 'children', tc: C[3], kind: 'html',
-    html: `<div class="rings">${ring(pct(M.tot.collected, M.tot.expected), C[0], C[2], 'وصول شهریه', `از ${money(M.tot.expected)}`)}${ring(pct(M.insGot, M.insReq), C[1], C[3], 'بیمه ورزشی', `${faNum(M.insGot)} از ${faNum(M.insReq)} کودک`)}${ring(pct(M.chkGot, M.chkReq), C[3], C[0], 'تحویل چک', `${faNum(M.chkGot)} از ${faNum(M.chkReq)} کودک`)}</div>` });
-  T.push({ id: 'classes', t: 'کودکان هر کلاس', sub: 'نفر', sheet: 'کودکان', page: 'children', tc: C[0], empty: M.classes.length ? '' : 'کودکی ثبت نشده است.',
-    cfg: () => ({ type: 'bar', data: { labels: M.classes.map(x => x.cl), datasets: [barDs('کودک', M.classes.map(x => x.n), C[0], vGrad(C[0]))] }, options: baseOpts(t, { labels: true, unit: 'کودک', grace: '20%' }) }) });
+    empty: M.active.length ? '' : none('کودک فعالی ثبت نشده است.'),
+    html: `<div class="rings">${ring(pct(M.tot.collected, M.tot.expected), C[0], C[2], 'شهریه', `دریافت از ${money(M.tot.expected)}`)}${ring(pct(M.insGot, M.insReq), C[1], C[3], 'بیمه ورزشی', `${faNum(M.insGot)} از ${faNum(M.insReq)} کودک`)}${ring(pct(M.chkGot, M.chkReq), C[3], C[0], 'تحویل چک', `${faNum(M.chkGot)} از ${faNum(M.chkReq)} کودک`)}</div>` });
+  T.push({ id: 'classes', t: 'کودکان هر کلاس', sub: 'نفر', sheet: 'کودکان', page: 'children', tc: C[0], empty: M.classes.length ? '' : none('کودکی ثبت نشده است.'),
+    cfg: () => { const hz = (document.querySelector('[data-tile="classes"] .cv') || {}).clientWidth < 52 * Math.max(1, M.classes.length);
+      return { type: 'bar', data: { labels: M.classes.map(x => x.cl), datasets: [barDs('کودک', M.classes.map(x => x.n), C[0], hz ? hGrad(C[0]) : vGrad(C[0]))] }, options: baseOpts(t, { horizontal: hz, labels: true, unit: 'کودک', grace: hz ? '16%' : '20%' }) }; } });
   T.push({ id: 'ageAtt', t: 'گروه سنی و نوع حضور', sub: 'نفر', sheet: 'کودکان', page: 'children', tc: C[1], legend: ilg(M.atts.map((a, i) => ({ l: a, c: C[i % 5] }))),
-    empty: M.groups.length ? '' : 'کودکی ثبت نشده است.',
+    empty: M.groups.length ? '' : none('کودکی ثبت نشده است.'),
     cfg: () => ({ type: 'bar', data: { labels: M.groups, datasets: M.atts.map((a, i) => barDs(a, M.groups.map(g => M.active.filter(c => same(c.group, g) && same(c.attendance, a)).length), C[i % 5], hGrad(C[i % 5], .5), { stack: 's', borderRadius: 4 })) },
       options: baseOpts(t, { horizontal: true, stacked: true, labels: true, unit: 'کودک', grace: '16%' }) }) });
   const svc = [
     { l: 'شنا', v: M.active.filter(c => same(c.swim, 'دارد')).length },
     { l: 'صبحانه و چاشت', v: M.active.filter(c => same(c.meal, 'دارد')).length },
-    { l: 'بیمه ورزشی', v: M.insGot },
+    { l: 'بیمه (پرداخت‌شده)', v: M.insGot },
   ];
-  T.push({ id: 'services', t: 'خدمات جانبی', sub: `کودک از ${faNum(M.active.length)} نفر`, sheet: 'خدمات', page: 'tariffs', tc: C[1],
-    note: DB.services.map(s => `${String(s.title || '').replace(/\s*\(.*\)$/, '')} ${s.attendance && !same(s.attendance, 'همه') ? `(${s.attendance}) ` : ''}${money(s.amount)}`).join(' · '),
-    cfg: () => ({ type: 'bar', data: { labels: svc.map(x => x.l), datasets: [barDs('کودک', svc.map(x => x.v), C[1], hGrad(C[1]))] }, options: baseOpts(t, { horizontal: true, labels: true, unit: 'کودک', grace: '28%', labelFmt: v => `${faNum(v)} نفر` }) }) });
-  const tuItems = [{ l: 'دریافت‌شده', v: M.tot.collected, c: C[0] }, { l: 'چک و قسط در جریان', v: M.tot.scheduled, c: C[1] }, { l: 'بدون برنامه‌ی پرداخت', v: M.tot.unscheduled, c: C[2] }];
+  // one price per service: «صبحانه و چاشت ۱٫۸–۳٫۶ میلیون»
+  const prices = {}; for (const s of DB.services) { const k = String(s.title || '').replace(/\s*\(.*\)\s*$/, '').trim(); if (!k || s.amount == null) continue; (prices[k] = prices[k] || []).push(+s.amount); }
+  const priceNote = Object.entries(prices).map(([k, a]) => { const lo = Math.min(...a), hi = Math.max(...a); return `${k} ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`}`; }).join(' · ');
+  T.push({ id: 'services', t: 'خدمات جانبی', sub: `کودکان فعال (از ${faNum(M.active.length)})`, sheet: 'خدمات', page: 'tariffs', tc: C[1], note: priceNote,
+    empty: M.active.length ? '' : none('کودک فعالی ثبت نشده است.'),
+    cfg: () => ({ type: 'bar', data: { labels: svc.map(x => x.l), datasets: [barDs('کودک', svc.map(x => x.v), C[1], hGrad(C[1]))] }, options: baseOpts(t, { horizontal: true, labels: true, unit: 'کودک', grace: '30%', labelFmt: v => `${faNum(v)} نفر` }) }) });
+  const tuItems = [{ l: 'دریافت‌شده', v: M.tot.collected, c: C[0] }, { l: 'چک و قسط', v: M.tot.scheduled, c: C[1] }, { l: 'بی‌برنامه', v: M.tot.unscheduled, c: C[2] }];
   T.push({ id: 'tuition', t: 'ترکیب تعهد شهریه', sub: `${money(M.tot.expected)} تومان`, sheet: 'کودکان', page: 'children', tc: C[2],
-    empty: M.tot.expected ? '' : 'تعهد شهریه‌ای ثبت نشده است.', center: `<div><b>${faNum(Math.round(pct(M.tot.collected, M.tot.expected) * 100))}٪</b><span>وصول‌شده</span></div>`, side: lgHtml(tuItems, money),
-    note: `${faNum(M.noPay)} کودک فعال هنوز پرداخت شهریه‌ای ندارند.`,
-    cfg: () => donutCfg(t, tuItems.map(x => x.l), tuItems.map(x => x.v), tuItems.map(x => x.c), { money: true }) });
-  T.push({ id: 'dues', t: 'سررسید چک و اقساط', sub: 'میلیون تومان', sheet: 'اقساط و چک‌ها', page: 'installments', tc: C[0], legend: ilg([{ l: 'چک', c: C[0] }, { l: 'قسط نقدی', c: C[1] }]),
-    empty: M.months.length ? '' : 'چک یا قسط در انتظاری ثبت نشده است.',
+    empty: M.tot.expected ? '' : none('تعهد شهریه‌ای ثبت نشده است.'), center: `<div><b>${pctText(M.tot.collected, M.tot.expected)}</b><span>دریافت‌شده</span></div>`, side: lgHtml(tuItems, money),
+    note: [`${faNum(M.noPay)} کودک فعال هنوز پرداخت شهریه ندارند`, M.noTariff ? `${faNum(M.noTariff)} کودک تعرفه ندارند` : ''].filter(Boolean).join(' · '),
+    cfg: () => donutCfg(t, ['دریافت‌شده', 'چک و قسط در جریان', 'بدون برنامه‌ی پرداخت'], tuItems.map(x => x.v), tuItems.map(x => x.c), { money: true }) });
+  const roleItems = M.roles.map((l, i) => ({ l, v: M.staffActive.filter(s => same(s.role, l)).length, c: i < 5 ? C[i] : t.neutral }));
+  T.push({ id: 'staff', t: 'پرسنل', sub: 'نفر', sheet: 'پرسنل', page: 'staff', tc: C[0],
+    empty: M.staffActive.length ? '' : 'پرسنلی ثبت نشده است.', center: `<div><b>${faNum(M.staffActive.length)}</b><span>نفر</span></div>`, side: lgHtml(roleItems, v => `${faNum(v)} نفر`),
+    note: `حقوق پرداختی ${MONTHS[+TODAY.slice(5, 7) - 1]}: ${M.salThisMonth ? money(M.salThisMonth) + ' تومان' : 'هنوز ثبت نشده'}`,
+    cfg: () => donutCfg(t, roleItems.map(x => x.l), roleItems.map(x => x.v), roleItems.map(x => x.c), { unit: 'نفر' }) });
+  T.push({ id: 'dues', span: 2, t: 'سررسید چک و اقساط', sub: 'میلیون تومان', sheet: 'اقساط و چک‌ها', page: 'installments', tc: C[0], legend: ilg([{ l: 'چک', c: C[0] }, { l: 'قسط نقدی', c: C[1] }]),
+    empty: M.months.length ? '' : none('چک یا قسط در انتظاری ثبت نشده است.'),
     note: M.overdue.length ? `${faNum(M.overdue.length)} مورد سررسید گذشته و پرداخت‌نشده · ${faNum(M.pend.length)} مورد در انتظار` : `${faNum(M.pend.length)} چک و قسط در انتظار`,
     cfg: () => ({ type: 'bar', data: { labels: monthLabels(M.months), datasets: [barDs('چک', M.dueChk, C[0], vGrad(C[0], .5), { stack: 's', borderRadius: 4 }), barDs('قسط نقدی', M.dueCash, C[1], vGrad(C[1], .5), { stack: 's', borderRadius: 4 })] },
       options: baseOpts(t, { stacked: true, millions: true, money: true, labels: true, labelFmt: m1, grace: '16%' }) }) });
   const tf = DB.tariffs;
-  T.push({ id: 'tariffs', t: 'تعرفه‌ها', sub: 'میلیون تومان', sheet: 'تعرفه‌ها', page: 'tariffs', tc: C[3], legend: ilg([{ l: 'بخش نقدی', c: C[0] }, { l: 'چک اول', c: C[1] }, { l: 'چک دوم', c: C[2] }]),
+  T.push({ id: 'tariffs', t: 'تعرفه‌ها', sub: 'میلیون تومان', sheet: 'تعرفه‌ها', page: 'tariffs', tc: C[3], legend: ilg([{ l: 'نقدی', c: C[0] }, { l: 'چک اول', c: C[1] }, { l: 'چک دوم', c: C[2] }]),
     empty: tf.length ? '' : 'تعرفه‌ای ثبت نشده است.',
-    cfg: () => ({ type: 'bar', data: { labels: tf.map(x => `${x.group || ''} · ${x.attendance || ''}`), datasets: [
-      barDs('بخش نقدی', tf.map(x => +x.cash || 0), C[0], C[0], { stack: 's', borderRadius: 3 }), barDs('چک اول', tf.map(x => +x.check1 || 0), C[1], C[1], { stack: 's', borderRadius: 3 }), barDs('چک دوم', tf.map(x => +x.check2 || 0), C[2], C[2], { stack: 's', borderRadius: 3 })] },
-      options: baseOpts(t, { horizontal: true, stacked: true, millions: true, money: true, labels: true, labelFmt: m1, grace: '20%', blur: 8 }) }) });
-  const roleItems = M.roles.map((l, i) => ({ l, v: M.staffActive.filter(s => same(s.role, l)).length, c: i < 5 ? C[i] : t.neutral }));
-  T.push({ id: 'staff', t: 'پرسنل و حقوق', sub: 'نفر', sheet: 'پرسنل', page: 'staff', tc: C[0],
-    empty: M.staffActive.length ? '' : 'پرسنلی ثبت نشده است.', center: `<div><b>${faNum(M.staffActive.length)}</b><span>نفر</span></div>`, side: lgHtml(roleItems, v => `${faNum(v)} نفر`),
-    note: `حقوق پرداختی ${MONTHS[+TODAY.slice(5, 7) - 1]}: ${M.salThisMonth ? money(M.salThisMonth) + ' تومان' : 'هنوز ثبت نشده'}`,
-    cfg: () => donutCfg(t, roleItems.map(x => x.l), roleItems.map(x => x.v), roleItems.map(x => x.c), { unit: 'نفر' }) });
+    cfg: () => {
+      const o = baseOpts(t, { horizontal: true, stacked: true, millions: true, money: true, labels: true, labelFmt: m1, grace: '22%', blur: 8 });
+      o.plugins.tooltip.callbacks.title = items => { const x = tf[items[0].dataIndex]; return `${x.group || ''} · ${x.attendance || ''} — جمع ${full(tariffTotal(x))}`; };
+      return { type: 'bar', data: { labels: tf.map(x => `${x.group || ''} · ${String(x.attendance || '').replace(/یک‌?روز‌?درمیان/, 'یک‌درمیان')}`), datasets: [
+        barDs('نقدی', tf.map(x => +x.cash || 0), C[0], C[0], { stack: 's', borderRadius: 3 }), barDs('چک اول', tf.map(x => +x.check1 || 0), C[1], C[1], { stack: 's', borderRadius: 3 }), barDs('چک دوم', tf.map(x => +x.check2 || 0), C[2], C[2], { stack: 's', borderRadius: 3 })] }, options: o };
+    } });
   const hasCosts = M.salByM.some(v => v) || M.expByM.some(v => v);
-  T.push({ id: 'costs', t: 'هزینه‌ها و حقوق', sub: '۶ ماه اخیر · میلیون تومان', sheet: 'خریدها و هزینه‌ها', page: 'expenses', tc: C[3],
+  T.push({ id: 'costs', t: 'هزینه و حقوق ۶ ماه', sub: 'میلیون تومان', sheet: 'خریدها و هزینه‌ها', page: 'expenses', tc: C[3],
     legend: hasCosts ? ilg([{ l: 'حقوق', c: C[3] }, { l: 'خرید و هزینه', c: C[2] }]) : '',
     empty: hasCosts ? '' : '<span>هنوز هزینه یا حقوقی ثبت نشده است.</span><span class="row"><button class="btn sm" type="button" data-add="expenses">+ ثبت هزینه</button><button class="btn sm" type="button" data-add="salaries">+ ثبت حقوق</button></span>',
     cfg: () => ({ type: 'bar', data: { labels: monthLabels(M.costMonths), datasets: [barDs('حقوق', M.salByM, C[3], vGrad(C[3])), barDs('خرید و هزینه', M.expByM, C[2], vGrad(C[2]))] }, options: baseOpts(t, { millions: true, money: true }) }) });
+  const evs = DB.events.slice().sort((a, b) => (jdnOf(a.date) ?? 1e9) - (jdnOf(b.date) ?? 1e9));
+  T.push({ id: 'events', t: 'رویدادها', sub: `${faNum(evs.length)} رویداد`, sheet: 'رویدادها', page: 'events', tc: C[4], kind: 'html',
+    empty: evs.length ? '' : '<span>رویدادی ثبت نشده است.</span><span class="row"><button class="btn sm" type="button" data-add="events">+ ثبت رویداد</button></span>',
+    html: `<ul class="evl">${evs.map(e => `<li><button type="button" class="ev" data-open="events:${esc(e.id)}"><b>${esc(e.title)}</b><span class="when">${e.date ? jHuman(e.date, false) : 'بدون تاریخ'}${e.budget ? ` · بودجه ${money(e.budget)}` : ''}</span>${eventPill(e.status)}${e.next ? `<small>${esc(e.next)}</small>` : ''}</button></li>`).join('')}</ul>` });
   return T;
 }
 function tileHtml(d, prefix, inModal) {
@@ -951,9 +1095,9 @@ function tileHtml(d, prefix, inModal) {
   else if (d.kind === 'html') body = d.html;
   else if (!window.Chart) body = '<div class="empty">کتابخانه‌ی نمودار بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.</div>';
   else body = `<div class="cv"><canvas id="${prefix}${d.id}" role="img" aria-label="${esc(d.t)}"></canvas>${d.center ? `<div class="center">${d.center}</div>` : ''}</div>${d.side || ''}`;
-  return `<section class="tile" style="--tc:${d.tc}" data-tile="${d.id}">
+  return `<section class="tile${d.span === 2 && !inModal ? ' w2' : ''}" style="--tc:${d.tc}" data-tile="${d.id}">
     <header><h3>${esc(d.t)}</h3><span class="sub">${esc(d.sub || '')}</span><span class="tools"><span class="sheet" title="شیت اکسل">${esc(d.sheet)}</span>
-      <a class="icon-btn" href="#${d.page}" title="ویرایش اطلاعات ${esc(d.sheet)}" aria-label="ویرایش اطلاعات ${esc(d.sheet)}">${ICON_EDIT}</a>
+      <a class="icon-btn edit-link" href="#${d.page}" title="ویرایش اطلاعات ${esc(d.sheet)}" aria-label="ویرایش اطلاعات ${esc(d.sheet)}">${ICON_EDIT}</a>
       ${inModal ? '' : `<button class="icon-btn" type="button" data-max="${d.id}" title="بزرگ‌نمایی" aria-label="بزرگ‌نمایی ${esc(d.t)}">${ICON_MAX}</button>`}</span></header>
     ${d.empty ? '' : (d.legend || '')}
     <div class="body${d.side && !d.empty ? ' split' : ''}">${body}</div>
@@ -966,32 +1110,48 @@ function drawTiles(defs, prefix) {
 }
 function kpiHtml(M, C) {
   const u = s => s.replace(/ (میلیون|میلیارد|هزار)$/, '<small>$1</small>');
-  const todaySum = sum(M.todayPays, p => p.amount);
   return `<div class="kpis">
     <a class="kpi" href="#children" style="--k:${C[0]}"><div class="l"><i></i>کودکان فعال</div><div class="v">${faNum(M.active.length)}</div><div class="s">${faNum(M.att[0])} هرروز · ${faNum(M.att[1])} یک‌روزدرمیان</div></a>
     <a class="kpi" href="#staff" style="--k:${C[3]}"><div class="l"><i></i>پرسنل فعال</div><div class="v">${faNum(M.staffActive.length)}</div><div class="s">${M.roles.slice(0, 2).map(r => `${faNum(M.staffActive.filter(s => same(s.role, r)).length)} ${esc(r)}`).join(' · ') || '—'}</div></a>
-    <a class="kpi" href="#tariffs" style="--k:${C[1]}"><div class="l"><i></i>تعهد شهریه</div><div class="v">${u(money(M.tot.expected))}</div><div class="s">تومان · طبق تعرفه و توافق</div></a>
-    <a class="kpi" href="#payments" style="--k:${C[0]}"><div class="l"><i></i>شهریه دریافت‌شده</div><div class="v">${u(money(M.tot.collected))}</div><div class="s">${faNum(Math.round(pct(M.tot.collected, M.tot.expected) * 100))}٪ از تعهد · امروز ${todaySum ? money(todaySum) : '۰'}</div></a>
-    <a class="kpi" href="#children" style="--k:${C[2]}"><div class="l"><i></i>مانده شهریه</div><div class="v">${u(money(M.tot.remaining))}</div><div class="s">${money(M.tot.scheduled)} چک و قسط در جریان</div></a>
+    <a class="kpi" href="#tariffs" style="--k:${C[1]}"><div class="l"><i></i>تعهد شهریه</div><div class="v">${u(money(M.tot.expected))}</div><div class="s">${M.noTariff ? `${faNum(M.noTariff)} کودک بدون تعرفه` : 'تومان · طبق تعرفه و توافق'}</div></a>
+    <a class="kpi" href="#payments" style="--k:${C[0]}"><div class="l"><i></i>شهریه دریافت‌شده</div><div class="v">${u(money(M.tot.collected))}</div><div class="s">${pctText(M.tot.collected, M.tot.expected)} از تعهد · امروز ${M.todayTuition ? money(M.todayTuition) : '۰'}</div></a>
+    <a class="kpi" href="#children" style="--k:${C[2]}"><div class="l"><i></i>مانده شهریه</div><div class="v">${u(money(M.tot.remaining))}</div><div class="s">${money(M.tot.scheduled)} چک و قسط</div></a>
     <a class="kpi" href="#installments" style="--k:${M.overdue.length ? 'var(--bad)' : C[4]}"><div class="l"><i></i>سررسیدها</div><div class="v">${faNum(M.overdue.length)}<small>مورد گذشته</small></div><div class="s">۷ روز آینده: ${M.soon.length ? `${faNum(M.soon.length)} مورد · ${money(sum(M.soon, i => i.amount))}` : 'ندارد'}</div></a>
   </div>`;
 }
-let TILES_CACHE = [];
+/* columns for the visible tiles: fill whole rows, at most 3 rows when possible */
+function boardShape(defs, width) {
+  const slots = sum(defs, d => d.span || 1), maxCols = width ? Math.max(1, Math.min(5, Math.floor((width + 12) / 202))) : 5;
+  let best = { cols: 1, rows: slots, score: Infinity };
+  for (let c = maxCols; c >= 1; c--) {
+    const rows = Math.ceil(slots / c), score = (rows * c - slots) * 3 + (rows > 3 ? (rows - 3) * 10 : 0) + (c > slots ? 50 : 0);
+    if (score < best.score) best = { cols: c, rows, score };
+  }
+  return best;
+}
+let TILES_CACHE = [], BOARD_COLS = 0;
 function renderDashboard(main) {
   const t = tok(), M = dashModel();
   RING_N = 0;
-  const defs = buildTiles(M, t).filter(d => shown(d.id));
+  const defs = buildTiles(M, t).filter(d => shown(d.id) && !(PRESENT && d.empty));
   TILES_CACHE = defs;
   main.classList.add('fit');
+  const { cols, rows } = boardShape(defs, main.clientWidth - 28);
+  BOARD_COLS = cols;
+  if (cols < 2) defs.forEach(d => { d.span = 1; });
+  else { // widen tiles from the end so the last row has no empty cells
+    let free = rows * cols - sum(defs, d => d.span || 1);
+    for (let i = defs.length - 1; i >= 0 && free > 0; i--) if ((defs[i].span || 1) === 1) { defs[i].span = 2; free--; }
+  }
   main.insertAdjacentHTML('beforeend', `<div class="dash">${shown('kpis') ? kpiHtml(M, t.c) : ''}
-    <div class="board" style="--rows:${Math.max(1, Math.ceil(defs.length / 4))}">${defs.length ? defs.map(d => tileHtml(d, 'ch-')).join('') : '<div class="empty">همه‌ی نمودارها خاموش‌اند. از «تنظیمات» نمودارهای دلخواه را روشن کنید.</div>'}</div></div>`);
+    <div class="board" style="--cols:${cols};--rows:${rows}">${defs.length ? defs.map(d => tileHtml(d, 'ch-')).join('') : '<div class="empty">همه‌ی نمودارها خاموش‌اند. از «تنظیمات» نمودارهای دلخواه را روشن کنید.</div>'}</div></div>`);
   drawTiles(defs, 'ch-');
   return M;
 }
 function openMax(id) {
   const d = TILES_CACHE.find(x => x.id === id); if (!d) return;
   destroyCharts('mx-');
-  $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal max" role="dialog" aria-modal="true" aria-label="${esc(d.t)}">${tileHtml(d, 'mx-', true)}
+  $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal max" role="dialog" aria-modal="true" aria-label="${esc(d.t)}" data-max-id="${esc(d.id)}">${tileHtml(d, 'mx-', true)}
     <div class="modal-actions"><span class="spacer"></span><button type="button" class="btn" data-close>بستن</button></div></div></div>`;
   drawTiles([d], 'mx-');
   const btn = $('#modal-root [data-close]'); if (btn) btn.focus();
@@ -1029,7 +1189,7 @@ function fillTable(ent) {
   });
   $('thead', block).innerHTML = `<tr>${cols.map(c => `<th${c.l ? ` data-sort="${c.k}"` : ''} scope="col">${esc(c.l)}${c.k === srt.k && c.l ? `<span class="dir">${srt.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}</tr>`;
   $('tbody', block).innerHTML = rows.length ? rows.map(({ r, cells }) => `<tr data-open="${ent}:${esc(r.id)}">${cells.map(c => `<td class="${c.cls || ''}">${c.html}</td>`).join('')}</tr>`).join('')
-    : `<tr class="empty-row"><td colspan="${cols.length}">${UI.search[ent] ? 'موردی با این جستجو پیدا نشد.' : `هنوز ${esc(SCHEMA[ent].one)}ی ثبت نشده است. با دکمه‌ی «افزودن» اولین مورد را ثبت کنید.`}</td></tr>`;
+    : `<tr class="empty-row"><td colspan="${cols.length}">${UI.search[ent] ? 'موردی با این جستجو پیدا نشد.' : filtersOn() && ['children', 'payments', 'installments'].includes(ent) ? 'با فیلترهای فعلی موردی نیست.' : `هنوز ${esc(SCHEMA[ent].any || SCHEMA[ent].one + 'ی')} ثبت نشده است. با دکمه‌ی «افزودن» اولین مورد را ثبت کنید.`}</td></tr>`;
   const moneyCols = cols.map((c, i) => c.money ? i : -1).filter(i => i >= 0);
   $('tfoot', block).innerHTML = rows.length && moneyCols.length ? `<tr>${cols.map((c, i) => `<td class="num">${i === 0 ? 'جمع' : c.money ? full(sum(rows, x => c.val ? c.val(x.r) : x.r[c.k])) : ''}</td>`).join('')}</tr>` : '';
   $('[data-count]', block).textContent = `${faNum(rows.length)} مورد`;
@@ -1072,9 +1232,9 @@ function childFinanceHtml(c) {
       <div><span>در قالب چک/قسط</span><b>${full(f.scheduled)}</b></div><div><span>مانده بدون برنامه</span><b>${full(f.unscheduled)}</b></div></div>
     <p class="sub">${isExempt(c) ? 'این کودک معاف از شهریه است.' : c.agreedFee != null ? `شهریه‌ی توافقی ثبت شده است${t ? ` (تعرفه: ${full(tariffTotal(t))})` : ''}.` : t ? `طبق تعرفه‌ی ${esc(t.group)} ${esc(t.attendance)}: نقدی ${full(t.cash)} + چک ${full(t.check1)} + چک ${full(t.check2)}` : 'برای این گروه سنی و نوع حضور تعرفه‌ای تعریف نشده است.'}</p>
     <div class="related"><h4>دریافت‌ها <button class="btn sm" type="button" data-add-for="payments:${esc(c.id)}">+ ثبت دریافت</button></h4>
-      ${pays.length ? `<div class="tbl-scroll"><table><tbody>${pays.map(p => `<tr data-open="payments:${esc(p.id)}"><td class="num">${p.date ? faDigits(p.date) : '<span class="muted">بدون تاریخ</span>'}</td><td>${esc(p.category || '')}</td><td>${esc(p.for || '')}</td><td>${esc(p.method || '')}</td><td class="num">${full(p.amount)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">دریافتی ثبت نشده است.</p>'}</div>
+      ${pays.length ? `<div class="tbl-scroll"><table><tbody>${pays.map(p => `<tr data-open="payments:${esc(p.id)}"><td class="num">${p.date ? esc(faDigits(p.date)) : '<span class="muted">بدون تاریخ</span>'}</td><td>${esc(p.category || '')}</td><td>${esc(p.for || '')}</td><td>${esc(p.method || '')}</td><td class="num">${full(p.amount)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">دریافتی ثبت نشده است.</p>'}</div>
     <div class="related"><h4>چک‌ها و اقساط <button class="btn sm" type="button" data-add-for="installments:${esc(c.id)}">+ ثبت چک یا قسط</button></h4>
-      ${inst.length ? `<div class="tbl-scroll"><table><tbody>${inst.map(i => `<tr data-open="installments:${esc(i.id)}"><td>${esc(i.type || '')}</td><td class="num">${i.due ? faDigits(i.due) : '—'}</td><td class="num">${i.amount == null ? '<span class="muted">نامشخص</span>' : full(i.amount)}</td><td>${statusPill('installments', 'status', i.status)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">چک یا قسطی ثبت نشده است.</p>'}</div>`;
+      ${inst.length ? `<div class="tbl-scroll"><table><tbody>${inst.map(i => `<tr data-open="installments:${esc(i.id)}"><td>${esc(i.type || '')}</td><td class="num">${i.due ? esc(faDigits(i.due)) : '—'}</td><td class="num">${i.amount == null ? '<span class="muted">نامشخص</span>' : full(i.amount)}</td><td>${statusPill('installments', 'status', i.status)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">چک یا قسطی ثبت نشده است.</p>'}</div>`;
 }
 let MODAL = null;
 function openForm(ent, id, preset) {
@@ -1113,11 +1273,11 @@ function readForm() {
     if (f.type === 'id') continue;
     const el = document.getElementById(`f-${ent}-${f.k}`); if (!el) continue;
     let v = el.value.trim();
-    if (f.type === 'money' || f.type === 'int') { if (v === '') v = null; else { const n = parseMoney(v); if (n == null) errs.push([f.k, 'یک عدد وارد کنید، مثلاً 20000000']); v = n; } }
+    if (f.type === 'money' || f.type === 'int') { if (v === '') v = null; else { const n = parseMoney(v); if (n == null) errs.push([f.k, 'یک عدد وارد کنید، مثلاً 20000000 یا ۲۰ میلیون']); else if (n < 0) errs.push([f.k, 'مبلغ نمی‌تواند منفی باشد']); v = n; } }
     else if (f.type === 'date') { if (v === '') v = null; else { const d = normDate(v); if (!d) errs.push([f.k, `تاریخ را به شکل ${TODAY} بنویسید`]); v = d || v; } }
     else if (f.type === 'month') { if (v === '') v = null; else { const m = toEn(v).match(/^(\d{4})[\/\-.](\d{1,2})$/); if (!m || +m[2] < 1 || +m[2] > 12) errs.push([f.k, `ماه را به شکل ${TODAY.slice(0, 7)} بنویسید`]); else v = `${m[1]}/${pad2(m[2])}`; } }
     else v = v === '' ? null : v;
-    if (f.req && (v == null || v === '')) errs.push([f.k, 'این خانه را پر کنید']);
+    if (f.req && (v == null || v === '') && !errs.some(x => x[0] === f.k)) errs.push([f.k, 'این خانه را پر کنید']);
     out[f.k] = v;
   }
   if (ent === 'tariffs' && out.total == null && (out.cash != null || out.check1 != null || out.check2 != null)) out.total = (+out.cash || 0) + (+out.check1 || 0) + (+out.check2 || 0);
@@ -1177,19 +1337,20 @@ let PRESENT = false;
 function badgeFor(id) {
   if (id === 'children') return `<span class="badge">${faNum(DB.children.filter(isActive).length)}</span>`;
   if (id === 'installments') {
-    const od = DB.installments.filter(i => isPending(i.status) && jdnOf(i.due) != null && jdnOf(i.due) < TODAY_JDN).length;
+    const od = DB.installments.filter(i => { const c = childById(i.childId); return isPending(i.status) && jdnOf(i.due) != null && jdnOf(i.due) < TODAY_JDN && (!c || isActive(c)); }).length;
     return od ? `<span class="badge alert" title="سررسید گذشته">${faNum(od)}</span>` : '';
   }
   return '';
 }
+function academicYear() { const j = d2j(TODAY_JDN), y = j.jm >= 7 ? j.jy : j.jy - 1; return `${faDigits(y)}-${faDigits(y + 1)}`; }
 function renderRail() {
   const page = currentPage();
   return `<aside class="rail" aria-label="ناوبری و فیلترها">
-    <div><h1 class="brand">داشبورد<small>مدیریت مهدکودک<br>سال تحصیلی ۱۴۰۵-۱۴۰۶</small></h1></div>
+    <div><h1 class="brand">داشبورد<small>مدیریت مهدکودک<br>سال تحصیلی ${academicYear()}</small></h1></div>
     <div class="today"><b>${esc(weekday(TODAY_JDN))} ${jHuman(TODAY)}</b><span>${META.savedAt ? `آخرین ذخیره: ${new Date(META.savedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}` : 'اطلاعات در همین مرورگر ذخیره می‌شود'}</span></div>
     <nav class="nav">${PAGES.map(p => `<a href="#${p.id}"${p.id === page ? ' aria-current="page"' : ''}><span>${esc(p.l)}</span>${badgeFor(p.id)}</a>`).join('')}</nav>
     <div class="slicers">${SLICERS.map(s => { const sel = PREFS.filters[s.k] || []; return `<div class="slicer"><h4><span>${esc(s.l)}</span>${sel.length ? `<button type="button" data-clear="${s.k}">پاک کردن</button>` : ''}</h4>
-      ${s.opts().map(o => `<button type="button" class="opt" data-slice="${s.k}" data-v="${esc(o)}" aria-pressed="${sel.some(v => same(v, o))}"><span>${esc(o)}</span><span class="n">${faNum(DB.children.filter(c => isActive(c) && same(c[s.k], o)).length)}</span></button>`).join('')}</div>`; }).join('')}</div>
+      <div class="opts">${s.opts().map(o => `<button type="button" class="opt" data-slice="${s.k}" data-v="${esc(o)}" aria-pressed="${sel.some(v => same(v, o))}"><span>${esc(o)}</span><span class="n">${faNum(DB.children.filter(c => isActive(c) && same(s.get(c), o)).length)}</span></button>`).join('')}</div></div>`; }).join('')}</div>
   </aside>`;
 }
 const SKINS = [
@@ -1202,7 +1363,7 @@ function renderSettings(main) {
   const hasSeed = !!($('#seed-xlsx')?.textContent || '').trim();
   main.insertAdjacentHTML('beforeend', `<div class="set-grid">
     <section class="card"><h3>داده‌ها</h3><div class="counts">${counts}</div>
-      <p>${META.importedAt ? `ورود اولیه از «${esc(META.source || 'اکسل')}» در ${new Date(META.importedAt).toLocaleString('fa-IR')}.` : ''} از این به بعد همه‌ی تغییرات را در خود داشبورد انجام دهید. برای پشتیبان‌گیری هر چند وقت یک‌بار خروجی اکسل بگیرید.</p>
+      <p>${META.importedAt ? `ورود اولیه از «${esc(META.source || 'اکسل')}» در ${new Date(META.importedAt).toLocaleDateString('fa-IR')} ساعت ${new Date(META.importedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}.` : ''} از این به بعد همه‌ی تغییرات را در خود داشبورد انجام دهید. برای پشتیبان‌گیری هر چند وقت یک‌بار خروجی اکسل بگیرید.</p>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         <button class="btn primary" type="button" data-export>دریافت خروجی اکسل</button>
         <label class="btn" for="reimport">جایگزینی با فایل اکسل جدید</label><input id="reimport" type="file" accept=".xlsx,.xls" hidden>
@@ -1234,10 +1395,10 @@ function renderWelcome() {
 function render() {
   document.documentElement.setAttribute('data-skin', PREFS.skin || 'neon');
   if (!DB) { renderWelcome(); return; }
-  computeFin(); destroyCharts();
+  computeFin(); destroyCharts('ch-');
   const page = currentPage(), meta = PAGES.find(p => p.id === page);
   const prevMain = $('#main'), scrollTop = prevMain ? prevMain.scrollTop : 0, winY = window.scrollY;
-  if (page !== 'dashboard') PRESENT = false;
+  if (page !== 'dashboard' && PRESENT) { PRESENT = false; if (document.fullscreenElement) { try { const r = document.exitFullscreen(); if (r && r.catch) r.catch(() => {}); } catch (e) {} } }
   $('#app').innerHTML = renderRail() + '<main id="main"></main>';
   $('#app').classList.toggle('present', PRESENT);
   const main = $('#main');
@@ -1245,8 +1406,8 @@ function render() {
   const isDash = page === 'dashboard';
   let metaChips = '';
   if (isDash) {
-    const ev = DB.events.filter(e => jdnOf(e.date) != null && jdnOf(e.date) >= TODAY_JDN).sort((a, b) => jdnOf(a.date) - jdnOf(b.date))[0] || DB.events.find(e => !e.date && !same(e.status, 'برگزار شد'));
-    metaChips = `<div class="meta"><span class="chip">${esc(weekday(TODAY_JDN))} ${jHuman(TODAY)}</span>${ev ? `<a class="chip" href="#events" style="text-decoration:none">رویداد بعدی: ${esc(ev.title)}${ev.date ? ` · ${jHuman(ev.date, false)}` : ''}</a>` : ''}${fchips.join('')}</div>`;
+    const nx = nextEventOf();
+    metaChips = `<div class="meta"><span class="chip">${esc(weekday(TODAY_JDN))} ${jHuman(TODAY)}</span>${nx ? `<a class="chip" href="#events" style="text-decoration:none">${nx.dated ? `رویداد بعدی: ${esc(nx.e.title)} · ${jHuman(nx.e.date, false)}` : `در انتظار برنامه‌ریزی: ${esc(nx.e.title)}`}</a>` : ''}${fchips.join('')}</div>`;
   }
   main.insertAdjacentHTML('beforeend', `<div class="topbar"><h1>${isDash ? 'نمای کلی مهد' : esc(meta.l)}</h1>${metaChips}<div class="actions">
       <button class="btn primary edit-act" type="button" data-add="payments">+ دریافت جدید</button>
@@ -1269,7 +1430,7 @@ function togglePresent() {
 
 /* ================= events ================= */
 document.addEventListener('click', e => {
-  const t = e.target.closest('button, [data-open], label, a, .modal-bg'); if (!t) return;
+  const t = e.target.closest('button, th[data-sort], [data-open], label, a, .modal-bg'); if (!t) return;
   const ds = t.dataset;
   if (ds.collect) { e.stopPropagation(); collect(ds.collect); return; }
   if (ds.add) { openForm(ds.add, null); return; }
@@ -1280,7 +1441,7 @@ document.addEventListener('click', e => {
   if (ds.unslice) { PREFS.filters[ds.unslice] = (PREFS.filters[ds.unslice] || []).filter(v => !same(v, ds.v)); savePrefs(); render(); return; }
   if (ds.clear) { PREFS.filters[ds.clear] = []; savePrefs(); render(); return; }
   if (ds.sort) { const ent = t.closest('.tbl-block').dataset.ent, cur = UI.sort[ent] || DEFAULT_SORT[ent] || {}; UI.sort[ent] = { k: ds.sort, dir: cur.k === ds.sort ? -cur.dir : 1 }; fillTable(ent); return; }
-  if (ds.open) { const [ent, id] = ds.open.split(':'); openForm(ent, id); return; }
+  if (ds.open) { e.preventDefault(); const [ent, id] = ds.open.split(':'); openForm(ent, id); return; }
   if (ds.today) { const el = document.getElementById(ds.today); if (el) el.value = TODAY; return; }
   if (ds.close !== undefined) { closeModal(); return; }
   if (ds.closeBg !== undefined && e.target === t) { closeModal(); return; }
@@ -1307,6 +1468,11 @@ document.addEventListener('change', async e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modal-root').innerHTML) closeModal(); });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && PRESENT) { PRESENT = false; render(); } });
+let resizeTimer = null;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => {
+  const m = $('#main'); if (!DB || !m || currentPage() !== 'dashboard' || $('#modal-root').innerHTML) return;
+  if (boardShape(TILES_CACHE, m.clientWidth - 28).cols !== BOARD_COLS) render();
+}, 250); });
 window.addEventListener('hashchange', () => { closeModal(); window.scrollTo(0, 0); const m = $('#main'); if (m) m.scrollTop = 0; render(); });
 
 /* ================= boot ================= */
@@ -1314,13 +1480,14 @@ function loadSeed(force) {
   const b64 = ($('#seed-xlsx')?.textContent || '').trim();
   if (!b64 || !window.XLSX) return false;
   try {
-    const { data, report } = importWorkbook(XLSX.read(b64, { type: 'base64', cellDates: true }));
+    const { data, report, extra } = importWorkbook(XLSX.read(b64, { type: 'base64', cellDates: true }));
     if (!data.children.length) return false;
-    DB = data; META = { importedAt: new Date().toISOString(), source: 'Mahd.xlsx', report }; save(); return true;
+    DB = data; META = { importedAt: new Date().toISOString(), source: 'Mahd.xlsx', report }; save(); saveExtra(extra); return true;
   } catch (e) { return false; }
 }
 load();
 if (!DB) loadSeed(false);
+else if (!loadExtra() && ($('#seed-xlsx')?.textContent || '').trim() && window.XLSX) { try { saveExtra(importWorkbook(XLSX.read(($('#seed-xlsx').textContent || '').trim(), { type: 'base64', cellDates: true })).extra); } catch (e) {} }
 render();
 // redraw once the Persian web font is ready so chart text is measured with it
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (DB && !$('#modal-root').innerHTML) render(); });
