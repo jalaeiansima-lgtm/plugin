@@ -111,13 +111,14 @@ a.kpi:hover{border-color:var(--line-strong)}
 .tile h3{margin:0;font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:3em}
 .tile .sub{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 0}
 .tile .tools{display:flex;align-items:center;gap:2px;margin-inline-start:auto;flex:none}
+@container (max-width:260px){.tile>header{flex-wrap:wrap;row-gap:0}.tile .sub{order:3;flex:1 0 100%;line-height:1.3}}
 .tile .sheet{font-size:10.5px;line-height:18px;color:var(--ink-3);border:1px solid var(--line);border-radius:999px;padding:0 8px;white-space:nowrap;flex:none}
 .tile .ilg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--ink-2);margin-top:2px}
 .tile .ilg span{display:inline-flex;align-items:center;gap:5px}
 .tile .ilg i{width:8px;height:8px;border-radius:2px;box-shadow:0 0 6px currentColor}
 .tile .body{flex:1;min-height:0;position:relative;margin-top:6px;display:flex;gap:10px;align-items:stretch}
 .tile .note{font-size:10.5px;line-height:1.35;color:var(--ink-3);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-@container (max-height:205px){.tile .note{-webkit-line-clamp:1}}
+@container (max-height:205px){.tile:not([data-tile="services"]) .note{-webkit-line-clamp:1}}
 @container (max-height:170px){.tile .note{display:none}.tile .ilg{margin-top:0}}
 .cv{position:relative;flex:1;min-width:0;min-height:0}
 .cv canvas{position:absolute;inset:0}
@@ -126,6 +127,7 @@ a.kpi:hover{border-color:var(--line-strong)}
 .cv .center b{display:block;font-size:clamp(10px,calc(var(--hole,100px) * .2),20px);line-height:1.15;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 12px rgba(255,90,200,.7)}
 .cv .center span{display:block;font-size:clamp(8.5px,calc(var(--hole,100px) * .12),12px);line-height:1.3;color:var(--ink-3)}
 .cv.tiny-hole .center{display:none}
+.cv.small-hole .center span{display:none}
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--ink-3);font-size:12.5px;text-align:center;padding:8px;border:1px dashed var(--line);border-radius:10px}
 .empty .row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 
@@ -136,7 +138,8 @@ a.kpi:hover{border-color:var(--line-strong)}
 .lg span{color:var(--ink-2);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .lg b{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
 .lg em{font-style:normal;color:var(--ink-3);font-size:10.5px;font-variant-numeric:tabular-nums;min-width:2.4em;text-align:left}
-@container (max-width:340px){.tile .sheet{display:none}.lg b{display:none}.lg{flex-basis:56%}.lg li{gap:4px}}
+@container (max-width:360px){.tile .sheet{display:none}.lg em{display:none}.lg{flex-basis:52%}.lg li{gap:4px;grid-template-columns:9px minmax(0,1fr) auto}}
+@container (max-width:205px){.lg b{display:none}.lg em{display:block}.lg{flex-basis:54%}.lg li{grid-template-columns:9px minmax(0,1fr) auto auto}}
 @container (max-height:200px){.lg{gap:2px;font-size:11px}}
 @container (max-width:150px){.tile .body.split{flex-direction:column}.lg{flex:none;gap:2px}}
 
@@ -159,7 +162,7 @@ a.kpi:hover{border-color:var(--line-strong)}
 .ring .dial b{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(13px,4.6cqw,19px);font-weight:800;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 10px var(--rc)}
 .ring span{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 @container (max-width:260px){.ring span{font-size:11px}.ring small{font-size:10px}}
-.ring small{font-size:10.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ring small{font-size:10.5px;color:var(--ink-3);max-width:100%;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 /* pills */
 .pill{display:inline-flex;align-items:center;gap:4px;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;border:1px solid transparent;color:var(--ink-2);background:var(--panel-2)}
@@ -176,9 +179,11 @@ a.kpi:hover{border-color:var(--line-strong)}
 .tbl-bar h3{margin:0;font-size:15px;font-weight:700;margin-inline-end:auto;display:flex;align-items:center;gap:8px;color:var(--ink)}
 .tbl-bar h3 .count{font-size:12px;font-weight:500;color:var(--ink-3)}
 .search{background:var(--field);border:1px solid var(--line);border-radius:9px;padding:6px 12px;width:220px;max-width:100%}
-.tbl-scroll{overflow:auto;max-height:calc(100vh - 170px);border-radius:8px}
+.tbl-scroll{overflow:auto;max-height:calc(100vh - 190px);border-radius:8px}
 .modal .tbl-scroll{max-height:260px}
-@media (max-width:1500px){th,td{padding:7px 7px}.mini{width:42px}}
+td.wrap{white-space:normal;min-width:90px;max-width:140px;line-height:1.3}
+@media (max-width:1500px){th,td{padding:7px 7px}.mini{width:36px}td.wrap{max-width:120px}}
+@media (max-width:1400px){.tbl-block[data-ent="children"] .c-group{display:none}}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{position:sticky;top:0;background:var(--panel-solid);text-align:right;color:var(--ink-3);font-weight:600;font-size:12px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;user-select:none}
 th[data-sort]{cursor:pointer}
@@ -257,7 +262,8 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 
 /* presentation mode: board only, full screen */
 #app.present{grid-template-columns:minmax(0,1fr)}
-#app.present .rail,#app.present .topbar .actions .edit-act,#app.present .tile .edit-link,#app.present .empty .row{display:none}
+#app.present .rail,#app.present .topbar .actions .edit-act,#app.present .tile .edit-link,#app.present .empty .row,#app.present + #modal-root .edit-link{display:none}
+#app.present .evl .ev{cursor:default}
 
 /* one-screen fit on desktop-sized windows */
 @media (min-width:1100px) and (min-height:560px){
@@ -299,6 +305,7 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
   .slicer .opts{display:flex;flex-wrap:wrap;gap:4px}
   .slicer .opt{width:auto;margin:0;padding:2px 9px;gap:6px}
 }
+@media (min-width:901px) and (max-height:760px){.brand small{display:none}.today{padding:4px 10px}.today span{display:none}.nav a{padding:2px 12px}.rail{gap:8px}.slicers{gap:6px}.slicer h4{margin-bottom:3px}}
 @media (max-width:1280px){.kpi .v{font-size:20px}}
 @media (min-width:901px) and (max-width:1280px){.topbar .actions .edit-act:not(.primary){display:none}}
 @media (min-width:901px) and (max-width:1500px){#app{grid-template-columns:204px minmax(0,1fr)}.brand{font-size:34px}main{padding-inline:14px}}
@@ -420,7 +427,7 @@ function jHuman(s, withYear = true) { const o = jParse(s); if (!o) return '—';
 function weekday(jdn) { const g = d2g(jdn); return WEEKDAYS[new Date(g.gy, g.gm - 1, g.gd).getDay()]; }
 function dateFromExcel(v) {
   if (v == null || v === '') return null;
-  if (v instanceof Date && !isNaN(v)) return fromJdn(g2d(v.getFullYear(), v.getMonth() + 1, v.getDate()));
+  if (v instanceof Date && !isNaN(v)) { const n = new Date(v.getTime() + 12 * 36e5); return fromJdn(g2d(n.getFullYear(), n.getMonth() + 1, n.getDate())); }
   if (typeof v === 'number' && v > 20000 && v < 80000) { const d = new Date(Math.round((v - 25569) * 864e5)); return fromJdn(g2d(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate())); }
   return normDate(v) || String(v);
 }
@@ -686,6 +693,7 @@ function nextId(ent) {
 const tariffFor = c => DB.tariffs.find(t => same(t.group, c.group) && same(t.attendance, c.attendance));
 const tariffTotal = t => !t ? 0 : (t.total != null ? +t.total : (+t.cash || 0) + (+t.check1 || 0) + (+t.check2 || 0));
 const isExempt = c => norm(c.payMode).includes(norm('معاف'));
+const lacksTariff = c => !isExempt(c) && c.agreedFee == null && !tariffTotal(tariffFor(c));
 const isActive = c => !c.status || same(c.status, 'فعال');
 let FIN = new Map();
 function computeFin() {
@@ -770,12 +778,12 @@ const F = (ent, k) => SCHEMA[ent].fields.find(f => f.k === k);
 function fieldCol(ent, k, label) { const f = F(ent, k); return { k, l: label || f.l || f.h, cell: r => cellFor(ent, f, r), money: f.type === 'money' && k !== 'salary' }; }
 const COLS = {
   children: () => [
-    fieldCol('children', 'id', 'کد'), fieldCol('children', 'name', 'نام'), fieldCol('children', 'cls'), fieldCol('children', 'group'), fieldCol('children', 'attendance', 'حضور'),
-    { k: 'expected', l: 'تعهد شهریه', money: true, cell: r => ({ html: full(fin(r.id).expected), cls: 'num', sort: fin(r.id).expected }), val: r => fin(r.id).expected },
+    fieldCol('children', 'id', 'کد'), fieldCol('children', 'name', 'نام'), fieldCol('children', 'cls'), { ...fieldCol('children', 'group'), hcls: 'c-group', cell: r => ({ ...cellFor('children', F('children', 'group'), r), cls: 'c-group' }) }, fieldCol('children', 'attendance', 'حضور'),
+    { k: 'expected', l: 'تعهد شهریه', money: true, cell: r => isActive(r) ? ({ html: full(fin(r.id).expected), cls: 'num', sort: fin(r.id).expected }) : ({ html: '<span class="muted">غیرفعال</span>', sort: -1 }), val: r => isActive(r) ? fin(r.id).expected : 0 },
     { k: 'received', l: 'دریافت‌شده', money: true, cell: r => ({ html: full(fin(r.id).received), cls: 'num', sort: fin(r.id).received }), val: r => fin(r.id).received },
-    { k: 'remaining', l: 'مانده', money: true, cell: r => { const f = fin(r.id); return { html: f.expected && !f.remaining ? pill('good', 'تسویه', '✓') : full(f.remaining), cls: 'num', sort: f.remaining }; }, val: r => fin(r.id).remaining },
-    { k: 'ratio', l: 'پیشرفت', cell: r => { const f = fin(r.id); if (f.ratio == null) return { html: isExempt(r) ? '<span class="muted">معاف</span>' : pill('warn', 'بدون تعرفه', '!'), sort: -1 }; return { html: `<span class="mini"><i style="width:${(f.ratio * 100).toFixed(0)}%"></i></span>${faNum(Math.round(f.ratio * 100))}٪`, cls: 'num', sort: f.ratio }; } },
-    fieldCol('children', 'insurance', 'بیمه'), fieldCol('children', 'checkStatus', 'چک‌ها'), fieldCol('children', 'status'),
+    { k: 'remaining', l: 'مانده', money: true, cell: r => { if (!isActive(r)) return { html: '<span class="muted">—</span>', sort: -1 }; const f = fin(r.id); return { html: f.expected && !f.remaining ? pill('good', 'تسویه', '✓') : full(f.remaining), cls: 'num', sort: f.remaining }; }, val: r => isActive(r) ? fin(r.id).remaining : 0 },
+    { k: 'ratio', l: 'پیشرفت', cell: r => { if (!isActive(r)) return { html: '<span class="muted">—</span>', sort: -2 }; const f = fin(r.id); if (f.ratio == null) return { html: isExempt(r) ? '<span class="muted">معاف</span>' : lacksTariff(r) ? pill('warn', 'بدون تعرفه', '!') : '<span class="muted">بدون شهریه</span>', sort: -1 }; return { html: `<span class="mini"><i style="width:${(f.ratio * 100).toFixed(0)}%"></i></span>${faNum(Math.round(f.ratio * 100))}٪`, cls: 'num', sort: f.ratio }; } },
+    fieldCol('children', 'insurance', 'بیمه'), { ...fieldCol('children', 'checkStatus', 'چک‌ها'), cell: r => ({ ...cellFor('children', F('children', 'checkStatus'), r), cls: 'wrap' }) }, fieldCol('children', 'status'),
   ],
   installments: () => [
     fieldCol('installments', 'id', 'کد'), fieldCol('installments', 'childId'), fieldCol('installments', 'type'), fieldCol('installments', 'amount'), fieldCol('installments', 'due', 'سررسید'),
@@ -828,9 +836,10 @@ const valueLabels = {
         const v = o.stackTotal ? sets.reduce((a, d, k) => a + (chart.getDatasetMeta(k).hidden ? 0 : (+d.data[i] || 0)), 0) : +ds.data[i];
         if (!v) return;
         const thick = hz ? el.height : el.width;
-        if (hz && thick < size * .8) return;
+        const fs = hz ? Math.min(size, thick * 1.25) : size; if (fs < 8) return;
+        c.font = `600 ${fs}px ${FONT()}`;
         const pos = hz ? el.y : el.x;
-        if (placed.some(p => Math.abs(p - pos) < (hz ? size : size * 1.6))) return;
+        if (placed.some(p => Math.abs(p - pos) < (hz ? fs : size * 1.6))) return;
         placed.push(pos);
         const txt = o.fmt ? o.fmt(v, i) : faNum(v);
         if (hz) { c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillText(txt, el.x - 6, el.y); }
@@ -847,7 +856,7 @@ const holeVar = {
     const cv = chart.canvas.closest('.cv'), ctl = chart.getDatasetMeta(0).controller;
     if (!cv || !ctl || !ctl.innerRadius) return;
     const d = Math.round(ctl.innerRadius * 2);
-    cv.style.setProperty('--hole', d + 'px'); cv.classList.toggle('tiny-hole', d < 56);
+    cv.style.setProperty('--hole', d + 'px'); cv.classList.toggle('tiny-hole', d < 36); cv.classList.toggle('small-hole', d < 52);
   },
 };
 let CHART_READY = false;
@@ -872,7 +881,14 @@ function baseOpts(t, o = {}) {
   const tickV = o.millions ? (v => faNum(+(v / 1e6).toFixed(Math.abs(v) < 1e7 && v % 1e6 ? 1 : 0))) : (v => faNum(v));
   const valueAxis = { beginAtZero: true, stacked: !!o.stacked, grace: o.grace || '8%', grid: { color: t.grid, drawTicks: false }, border: { display: false }, ticks: { color: t.ink3, callback: tickV, maxTicksLimit: 4, padding: 6, precision: 0, font: { size: 10.5 } } };
   // every category label is drawn; only the 30-day line thins its date labels
-  const catFont = o.xTicks ? { size: 11 } : (ctx => { const ch = ctx.chart, n = (ch.data.labels || []).length || 1; return { size: hz ? Math.max(8, Math.min(10.5, (ch.height - 8) / n * .62)) : Math.max(8.5, Math.min(10.5, ch.width / n / 4.2)) }; });
+  const catFont = o.xTicks ? { size: 11 } : (ctx => {
+    const ch = ctx.chart, labels = ch.data.labels || [], n = labels.length || 1;
+    if (!hz) return { size: Math.max(8.5, Math.min(10.5, ch.width / n / 4.2)) };
+    let size = Math.min(10.5, (ch.height - 8) / n * .75);
+    const c = ch.ctx; c.save(); c.font = `10.5px ${FONT()}`; const w = Math.max(0, ...labels.map(l => c.measureText(String(l)).width)); c.restore();
+    if (w) size = Math.min(size, 10.5 * (ch.width / 2 - 14) / w);
+    return { size: Math.max(8, size) };
+  });
   const catAxis = { stacked: !!o.stacked, grid: { display: false }, border: { color: t.grid }, ticks: { color: t.ink2, padding: 3, autoSkip: !!o.xTicks, autoSkipPadding: 10, maxRotation: 0, font: catFont, ...(o.xTicks ? { maxTicksLimit: o.xTicks } : {}) } };
   if (hz && o.labels) { valueAxis.ticks = { ...valueAxis.ticks, display: false }; valueAxis.grid = { ...valueAxis.grid, display: false }; }
   return {
@@ -966,7 +982,7 @@ function dashModel() {
   const months = uniq(dated.map(monthOfDue)).sort();
   const known = PAY_CATS.slice(0, -1);
   const catVals = PAY_CATS.map(cat => sum(receipts.filter(r => cat === 'سایر' ? !known.some(c => same(c, r.category)) : same(r.category, cat)), r => r.amount));
-  const methods = uniq([...METHODS.filter(m => m !== 'نامشخص'), ...receipts.map(r => r.method), 'نامشخص']);
+  const methods = uniq([...METHODS.filter(m => m !== 'نامشخص'), ...receipts.map(r => r.method).filter(m => !same(m, 'نامشخص')), 'نامشخص']);
   const methVals = methods.map(m => sum(receipts.filter(r => same(r.method, m)), r => r.amount));
   const costMonths = []; { const j = d2j(TODAY_JDN); let y = j.jy, m = j.jm; for (let k = 0; k < 6; k++) { costMonths.unshift(`${y}/${pad2(m)}`); if (--m < 1) { m = 12; y--; } } }
   const salKey = s => s.month || (normDate(s.date) || '').slice(0, 7);
@@ -977,7 +993,7 @@ function dashModel() {
     insReq: insReqL.length, insGot: insReqL.filter(c => same(c.insurance, 'دریافت شد')).length,
     chkReq: chkReqL.length, chkGot: chkReqL.filter(c => norm(c.checkStatus).startsWith(norm('تحویل داده'))).length,
     noPay: active.filter(c => fin(c.id).expected > 0 && fin(c.id).received === 0).length,
-    noTariff: active.filter(c => !isExempt(c) && c.agreedFee == null && !tariffFor(c)).length,
+    noTariff: active.filter(lacksTariff).length,
     atts, att: ATT.map(a => active.filter(c => same(c.attendance, a)).length),
     roles: uniq(staffActive.map(s => s.role)),
     days, dailyVals: days.map(d => byDay[d] || 0),
@@ -1010,7 +1026,7 @@ function eventPill(s) {
 }
 function buildTiles(M, t) {
   const C = t.c, T = [], none = s => M.S.on ? 'با فیلترهای فعلی موردی نیست.' : s;
-  const m1 = v => faNum(+(v / 1e6).toFixed(1));
+  const m1 = v => faNum(+(v / 1e6).toFixed(1));  // amounts shown in millions; the tile subtitle names the unit
   const trendNote = [
     M.undated.length ? `${faNum(M.undated.length)} دریافت بدون تاریخ (${money(sum(M.undated, r => r.amount))} تومان) در نمودار نیامده` : '',
     M.future.length ? `${faNum(M.future.length)} دریافت با تاریخ آینده` : '',
@@ -1025,43 +1041,47 @@ function buildTiles(M, t) {
           pointRadius: M.dailyVals.map(v => v ? 3 : 0), pointHoverRadius: 5, pointBackgroundColor: '#fff', pointBorderColor: C[2], pointBorderWidth: 2, glow: C[2] }] }, options: o };
     } });
   const catItems = PAY_CATS.map((l, i) => ({ l, v: M.catVals[i], c: i < 5 ? C[i] : t.neutral })).filter(x => x.v > 0);
-  T.push({ id: 'category', t: 'دریافت به تفکیک دسته', sub: 'تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[0],
-    empty: M.catTotal ? '' : none('دریافتی ثبت نشده است.'), center: moneyCenter(M.catTotal, 'کل'), side: lgHtml(catItems, money),
+  T.push({ id: 'category', t: 'دریافت به تفکیک دسته', sub: 'میلیون تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[0],
+    empty: M.catTotal ? '' : none('دریافتی ثبت نشده است.'), center: moneyCenter(M.catTotal, 'کل'), side: lgHtml(catItems, m1),
     cfg: () => donutCfg(t, catItems.map(x => x.l), catItems.map(x => x.v), catItems.map(x => x.c), { money: true }) });
   let ci = 0;
   const methItems = M.methods.map(l => ({ l, v: M.methVals[M.methods.indexOf(l)], c: same(l, 'نامشخص') ? t.neutral : C[(ci++) % 5] })).filter(x => x.v > 0);
-  T.push({ id: 'method', t: 'روش دریافت', sub: 'تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[1],
-    empty: methItems.length ? '' : none('دریافتی ثبت نشده است.'), side: lgHtml(methItems, money),
+  T.push({ id: 'method', t: 'روش دریافت', sub: 'میلیون تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[1],
+    empty: methItems.length ? '' : none('دریافتی ثبت نشده است.'), side: lgHtml(methItems, m1),
     cfg: () => donutCfg(t, methItems.map(x => x.l), methItems.map(x => x.v), methItems.map(x => x.c), { money: true, pie: true }) });
   T.push({ id: 'rings', t: 'شاخص‌های کلیدی', sub: 'کودکان فعال', sheet: 'کودکان', page: 'children', tc: C[3], kind: 'html',
     empty: M.active.length ? '' : none('کودک فعالی ثبت نشده است.'),
     html: `<div class="rings">${ring(pct(M.tot.collected, M.tot.expected), C[0], C[2], 'شهریه', `دریافت از ${money(M.tot.expected)}`)}${ring(pct(M.insGot, M.insReq), C[1], C[3], 'بیمه ورزشی', `${faNum(M.insGot)} از ${faNum(M.insReq)} کودک`)}${ring(pct(M.chkGot, M.chkReq), C[3], C[0], 'تحویل چک', `${faNum(M.chkGot)} از ${faNum(M.chkReq)} کودک`)}</div>` });
   T.push({ id: 'classes', t: 'کودکان هر کلاس', sub: 'نفر', sheet: 'کودکان', page: 'children', tc: C[0], empty: M.classes.length ? '' : none('کودکی ثبت نشده است.'),
     cfg: () => { const hz = (document.querySelector('[data-tile="classes"] .cv') || {}).clientWidth < 52 * Math.max(1, M.classes.length);
-      return { type: 'bar', data: { labels: M.classes.map(x => x.cl), datasets: [barDs('کودک', M.classes.map(x => x.n), C[0], hz ? hGrad(C[0]) : vGrad(C[0]))] }, options: baseOpts(t, { horizontal: hz, labels: true, unit: 'کودک', grace: hz ? '16%' : '20%' }) }; } });
+      return { type: 'bar', data: { labels: M.classes.map(x => x.cl), datasets: [barDs('تعداد', M.classes.map(x => x.n), C[0], hz ? hGrad(C[0]) : vGrad(C[0]))] }, options: baseOpts(t, { horizontal: hz, labels: true, unit: 'کودک', grace: hz ? '16%' : '20%' }) }; } });
   T.push({ id: 'ageAtt', t: 'گروه سنی و نوع حضور', sub: 'نفر', sheet: 'کودکان', page: 'children', tc: C[1], legend: ilg(M.atts.map((a, i) => ({ l: a, c: C[i % 5] }))),
     empty: M.groups.length ? '' : none('کودکی ثبت نشده است.'),
     cfg: () => ({ type: 'bar', data: { labels: M.groups, datasets: M.atts.map((a, i) => barDs(a, M.groups.map(g => M.active.filter(c => same(c.group, g) && same(c.attendance, a)).length), C[i % 5], hGrad(C[i % 5], .5), { stack: 's', borderRadius: 4 })) },
       options: baseOpts(t, { horizontal: true, stacked: true, labels: true, unit: 'کودک', grace: '16%' }) }) });
   const svc = [
-    { l: 'شنا', v: M.active.filter(c => same(c.swim, 'دارد')).length },
-    { l: 'صبحانه و چاشت', v: M.active.filter(c => same(c.meal, 'دارد')).length },
-    { l: 'بیمه (پرداخت‌شده)', v: M.insGot },
+    { l: 'شنا', k: 'شنا', v: M.active.filter(c => same(c.swim, 'دارد')).length },
+    { l: 'صبحانه و چاشت', k: 'صبحانه و چاشت', v: M.active.filter(c => same(c.meal, 'دارد')).length },
+    { l: 'بیمه (پرداخت‌شده)', k: 'بیمه ورزشی', v: M.insGot },
   ];
   // one price per service: «صبحانه و چاشت ۱٫۸–۳٫۶ میلیون»
-  const prices = {}; for (const s of DB.services) { const k = String(s.title || '').replace(/\s*\(.*\)\s*$/, '').trim(); if (!k || s.amount == null) continue; (prices[k] = prices[k] || []).push(+s.amount); }
+  const prices = Object.create(null); for (const s of DB.services) { const k = String(s.title || '').replace(/\s*\(.*\)\s*$/, '').trim(); if (!k || s.amount == null) continue; (prices[k] = prices[k] || []).push(+s.amount); }
   const priceNote = Object.entries(prices).map(([k, a]) => { const lo = Math.min(...a), hi = Math.max(...a); return `${k} ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`}`; }).join(' · ');
-  T.push({ id: 'services', t: 'خدمات جانبی', sub: `کودکان فعال (از ${faNum(M.active.length)})`, sheet: 'خدمات', page: 'tariffs', tc: C[1], note: priceNote,
+  T.push({ id: 'services', t: 'خدمات جانبی', sub: `از ${faNum(M.active.length)} کودک فعال`, sheet: 'خدمات', page: 'tariffs', tc: C[1], note: priceNote,
     empty: M.active.length ? '' : none('کودک فعالی ثبت نشده است.'),
-    cfg: () => ({ type: 'bar', data: { labels: svc.map(x => x.l), datasets: [barDs('کودک', svc.map(x => x.v), C[1], hGrad(C[1]))] }, options: baseOpts(t, { horizontal: true, labels: true, unit: 'کودک', grace: '30%', labelFmt: v => `${faNum(v)} نفر` }) }) });
+    cfg: () => {
+      const o = baseOpts(t, { horizontal: true, labels: true, unit: 'نفر', grace: '30%', labelFmt: v => `${faNum(v)} نفر` });
+      o.plugins.tooltip.callbacks.footer = items => { const key = Object.keys(prices).find(k => same(k, svc[items[0].dataIndex].k)), a = key && prices[key]; if (!a) return ''; const lo = Math.min(...a), hi = Math.max(...a); return `قیمت: ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`} تومان`; };
+      return { type: 'bar', data: { labels: svc.map(x => x.l), datasets: [barDs('تعداد', svc.map(x => x.v), C[1], hGrad(C[1]))] }, options: o };
+    } });
   const tuItems = [{ l: 'دریافت‌شده', v: M.tot.collected, c: C[0] }, { l: 'چک و قسط', v: M.tot.scheduled, c: C[1] }, { l: 'بی‌برنامه', v: M.tot.unscheduled, c: C[2] }];
-  T.push({ id: 'tuition', t: 'ترکیب تعهد شهریه', sub: `${money(M.tot.expected)} تومان`, sheet: 'کودکان', page: 'children', tc: C[2],
-    empty: M.tot.expected ? '' : none('تعهد شهریه‌ای ثبت نشده است.'), center: `<div><b>${pctText(M.tot.collected, M.tot.expected)}</b><span>دریافت‌شده</span></div>`, side: lgHtml(tuItems, money),
+  T.push({ id: 'tuition', t: 'ترکیب تعهد شهریه', sub: `میلیون تومان · از ${money(M.tot.expected)}`, sheet: 'کودکان', page: 'children', tc: C[2],
+    empty: M.tot.expected ? '' : none('تعهد شهریه‌ای ثبت نشده است.'), center: `<div><b>${pctText(M.tot.collected, M.tot.expected)}</b><span>دریافت‌شده</span></div>`, side: lgHtml(tuItems, m1),
     note: [`${faNum(M.noPay)} کودک فعال هنوز پرداخت شهریه ندارند`, M.noTariff ? `${faNum(M.noTariff)} کودک تعرفه ندارند` : ''].filter(Boolean).join(' · '),
     cfg: () => donutCfg(t, ['دریافت‌شده', 'چک و قسط در جریان', 'بدون برنامه‌ی پرداخت'], tuItems.map(x => x.v), tuItems.map(x => x.c), { money: true }) });
   const roleItems = M.roles.map((l, i) => ({ l, v: M.staffActive.filter(s => same(s.role, l)).length, c: i < 5 ? C[i] : t.neutral }));
   T.push({ id: 'staff', t: 'پرسنل', sub: 'نفر', sheet: 'پرسنل', page: 'staff', tc: C[0],
-    empty: M.staffActive.length ? '' : 'پرسنلی ثبت نشده است.', center: `<div><b>${faNum(M.staffActive.length)}</b><span>نفر</span></div>`, side: lgHtml(roleItems, v => `${faNum(v)} نفر`),
+    empty: M.staffActive.length ? '' : 'پرسنلی ثبت نشده است.', center: `<div><b>${faNum(M.staffActive.length)}</b><span>نفر</span></div>`, side: lgHtml(roleItems, v => faNum(v)),
     note: `حقوق پرداختی ${MONTHS[+TODAY.slice(5, 7) - 1]}: ${M.salThisMonth ? money(M.salThisMonth) + ' تومان' : 'هنوز ثبت نشده'}`,
     cfg: () => donutCfg(t, roleItems.map(x => x.l), roleItems.map(x => x.v), roleItems.map(x => x.c), { unit: 'نفر' }) });
   T.push({ id: 'dues', span: 2, t: 'سررسید چک و اقساط', sub: 'میلیون تومان', sheet: 'اقساط و چک‌ها', page: 'installments', tc: C[0], legend: ilg([{ l: 'چک', c: C[0] }, { l: 'قسط نقدی', c: C[1] }]),
@@ -1086,7 +1106,7 @@ function buildTiles(M, t) {
   const evs = DB.events.slice().sort((a, b) => (jdnOf(a.date) ?? 1e9) - (jdnOf(b.date) ?? 1e9));
   T.push({ id: 'events', t: 'رویدادها', sub: `${faNum(evs.length)} رویداد`, sheet: 'رویدادها', page: 'events', tc: C[4], kind: 'html',
     empty: evs.length ? '' : '<span>رویدادی ثبت نشده است.</span><span class="row"><button class="btn sm" type="button" data-add="events">+ ثبت رویداد</button></span>',
-    html: `<ul class="evl">${evs.map(e => `<li><button type="button" class="ev" data-open="events:${esc(e.id)}"><b>${esc(e.title)}</b><span class="when">${e.date ? jHuman(e.date, false) : 'بدون تاریخ'}${e.budget ? ` · بودجه ${money(e.budget)}` : ''}</span>${eventPill(e.status)}${e.next ? `<small>${esc(e.next)}</small>` : ''}</button></li>`).join('')}</ul>` });
+    html: `<ul class="evl">${evs.map(e => `<li><button type="button" class="ev"${PRESENT ? ' tabindex="-1"' : ` data-open="events:${esc(e.id)}"`}><b>${esc(e.title)}</b><span class="when">${e.date ? jHuman(e.date, false) : 'بدون تاریخ'}${e.budget ? ` · بودجه ${money(e.budget)}` : ''}</span>${eventPill(e.status)}${e.next ? `<small>${esc(e.next)}</small>` : ''}</button></li>`).join('')}</ul>` });
   return T;
 }
 function tileHtml(d, prefix, inModal) {
@@ -1097,7 +1117,7 @@ function tileHtml(d, prefix, inModal) {
   else body = `<div class="cv"><canvas id="${prefix}${d.id}" role="img" aria-label="${esc(d.t)}"></canvas>${d.center ? `<div class="center">${d.center}</div>` : ''}</div>${d.side || ''}`;
   return `<section class="tile${d.span === 2 && !inModal ? ' w2' : ''}" style="--tc:${d.tc}" data-tile="${d.id}">
     <header><h3>${esc(d.t)}</h3><span class="sub">${esc(d.sub || '')}</span><span class="tools"><span class="sheet" title="شیت اکسل">${esc(d.sheet)}</span>
-      <a class="icon-btn edit-link" href="#${d.page}" title="ویرایش اطلاعات ${esc(d.sheet)}" aria-label="ویرایش اطلاعات ${esc(d.sheet)}">${ICON_EDIT}</a>
+      ${PRESENT ? '' : `<a class="icon-btn edit-link" href="#${d.page}" title="ویرایش اطلاعات ${esc(d.sheet)}" aria-label="ویرایش اطلاعات ${esc(d.sheet)}">${ICON_EDIT}</a>`}
       ${inModal ? '' : `<button class="icon-btn" type="button" data-max="${d.id}" title="بزرگ‌نمایی" aria-label="بزرگ‌نمایی ${esc(d.t)}">${ICON_MAX}</button>`}</span></header>
     ${d.empty ? '' : (d.legend || '')}
     <div class="body${d.side && !d.empty ? ' split' : ''}">${body}</div>
@@ -1121,7 +1141,7 @@ function kpiHtml(M, C) {
 }
 /* columns for the visible tiles: fill whole rows, at most 3 rows when possible */
 function boardShape(defs, width) {
-  const slots = sum(defs, d => d.span || 1), maxCols = width ? Math.max(1, Math.min(5, Math.floor((width + 12) / 202))) : 5;
+  const slots = sum(defs, d => d.span || 1), maxCols = width ? Math.max(1, Math.min(5, Math.floor((width + 12) / (PRESENT ? 176 : 202)))) : 5;
   let best = { cols: 1, rows: slots, score: Infinity };
   for (let c = maxCols; c >= 1; c--) {
     const rows = Math.ceil(slots / c), score = (rows * c - slots) * 3 + (rows > 3 ? (rows - 3) * 10 : 0) + (c > slots ? 50 : 0);
@@ -1129,22 +1149,26 @@ function boardShape(defs, width) {
   }
   return best;
 }
-let TILES_CACHE = [], BOARD_COLS = 0;
+let TILES_CACHE = [], BOARD_COLS = 0, BOARD_SIG = '', BOARD_STALE = false;
+const fitBoard = () => matchMedia(PRESENT ? '(min-width:900px) and (min-height:560px)' : '(min-width:1100px) and (min-height:560px)').matches;
+const boardSig = m => `${m.clientWidth}:${fitBoard()}`;
+const cssCols = () => innerWidth <= 620 ? 1 : innerWidth < 1100 ? 2 : 4;
 function renderDashboard(main) {
   const t = tok(), M = dashModel();
   RING_N = 0;
   const defs = buildTiles(M, t).filter(d => shown(d.id) && !(PRESENT && d.empty));
   TILES_CACHE = defs;
   main.classList.add('fit');
-  const { cols, rows } = boardShape(defs, main.clientWidth - 28);
-  BOARD_COLS = cols;
+  const fit = fitBoard(), slots = sum(defs, d => d.span || 1);
+  const { cols, rows } = fit ? boardShape(defs, main.clientWidth - 28) : { cols: cssCols(), rows: Math.ceil(slots / cssCols()) };
+  BOARD_COLS = cols; BOARD_SIG = boardSig(main); BOARD_STALE = false;
   if (cols < 2) defs.forEach(d => { d.span = 1; });
   else { // widen tiles from the end so the last row has no empty cells
     let free = rows * cols - sum(defs, d => d.span || 1);
     for (let i = defs.length - 1; i >= 0 && free > 0; i--) if ((defs[i].span || 1) === 1) { defs[i].span = 2; free--; }
   }
   main.insertAdjacentHTML('beforeend', `<div class="dash">${shown('kpis') ? kpiHtml(M, t.c) : ''}
-    <div class="board" style="--cols:${cols};--rows:${rows}">${defs.length ? defs.map(d => tileHtml(d, 'ch-')).join('') : '<div class="empty">همه‌ی نمودارها خاموش‌اند. از «تنظیمات» نمودارهای دلخواه را روشن کنید.</div>'}</div></div>`);
+    <div class="board" style="--cols:${cols};--rows:${rows}">${defs.length ? defs.map(d => tileHtml(d, 'ch-')).join('') : '<div class="empty" style="grid-column:1/-1">همه‌ی نمودارها خاموش‌اند. از «تنظیمات» نمودارهای دلخواه را روشن کنید.</div>'}</div></div>`);
   drawTiles(defs, 'ch-');
   return M;
 }
@@ -1187,7 +1211,7 @@ function fillTable(ent) {
     if (x === y) return 0; if (x === '' || x == null) return 1; if (y === '' || y == null) return -1;
     return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'fa')) * srt.dir;
   });
-  $('thead', block).innerHTML = `<tr>${cols.map(c => `<th${c.l ? ` data-sort="${c.k}"` : ''} scope="col">${esc(c.l)}${c.k === srt.k && c.l ? `<span class="dir">${srt.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}</tr>`;
+  $('thead', block).innerHTML = `<tr>${cols.map(c => `<th${c.l ? ` data-sort="${c.k}"` : ''}${c.hcls ? ` class="${c.hcls}"` : ''} scope="col">${esc(c.l)}${c.k === srt.k && c.l ? `<span class="dir">${srt.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}</tr>`;
   $('tbody', block).innerHTML = rows.length ? rows.map(({ r, cells }) => `<tr data-open="${ent}:${esc(r.id)}">${cells.map(c => `<td class="${c.cls || ''}">${c.html}</td>`).join('')}</tr>`).join('')
     : `<tr class="empty-row"><td colspan="${cols.length}">${UI.search[ent] ? 'موردی با این جستجو پیدا نشد.' : filtersOn() && ['children', 'payments', 'installments'].includes(ent) ? 'با فیلترهای فعلی موردی نیست.' : `هنوز ${esc(SCHEMA[ent].any || SCHEMA[ent].one + 'ی')} ثبت نشده است. با دکمه‌ی «افزودن» اولین مورد را ثبت کنید.`}</td></tr>`;
   const moneyCols = cols.map((c, i) => c.money ? i : -1).filter(i => i >= 0);
@@ -1255,7 +1279,7 @@ function openForm(ent, id, preset) {
   if (ent === 'payments' || ent === 'installments') updateChildHint(ent);
   const first = $('#m-form input:not([readonly]), #m-form select'); if (first) first.focus();
 }
-function closeModal() { destroyCharts('mx-'); $('#modal-root').innerHTML = ''; MODAL = null; }
+function closeModal() { destroyCharts('mx-'); $('#modal-root').innerHTML = ''; MODAL = null; if (BOARD_STALE && DB && currentPage() === 'dashboard') render(); }
 function updateMoneyHint(id, f) {
   const el = document.getElementById(id), h = document.getElementById(id + '-hint'); if (!el || !h) return;
   const n = parseMoney(el.value);
@@ -1470,8 +1494,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modal-
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && PRESENT) { PRESENT = false; render(); } });
 let resizeTimer = null;
 window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => {
-  const m = $('#main'); if (!DB || !m || currentPage() !== 'dashboard' || $('#modal-root').innerHTML) return;
-  if (boardShape(TILES_CACHE, m.clientWidth - 28).cols !== BOARD_COLS) render();
+  const m = $('#main'); if (!DB || !m || currentPage() !== 'dashboard' || boardSig(m) === BOARD_SIG) return;
+  if ($('#modal-root').innerHTML) { BOARD_STALE = true; return; }
+  render();
 }, 250); });
 window.addEventListener('hashchange', () => { closeModal(); window.scrollTo(0, 0); const m = $('#main'); if (m) m.scrollTop = 0; render(); });
 
