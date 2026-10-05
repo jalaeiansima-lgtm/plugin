@@ -216,7 +216,12 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 .modal.max .ring .dial b{font-size:30px}
 .modal.max .ring span{font-size:15px}
 .modal.max .ring small{font-size:12.5px}
-.modal h2{margin:0 0 4px;font-size:18px}
+.modal h2{margin:0 0 4px;font-size:18px;padding-inline-end:44px}
+.modal{position:relative}
+.close-x{position:absolute;top:14px;left:14px;z-index:3;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;border:1px solid var(--line-strong);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:17px;line-height:1}
+.close-x:hover{box-shadow:0 0 14px rgba(192,107,255,.45)}
+.modal.max .tile>header{padding-left:44px}
+.btn.close-page{border-color:var(--line-strong);font-weight:700}
 .modal .sub{color:var(--ink-3);font-size:12px;margin:0 0 16px}
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
 .field{min-width:0}
@@ -1175,7 +1180,7 @@ function renderDashboard(main) {
 function openMax(id) {
   const d = TILES_CACHE.find(x => x.id === id); if (!d) return;
   destroyCharts('mx-');
-  $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal max" role="dialog" aria-modal="true" aria-label="${esc(d.t)}" data-max-id="${esc(d.id)}">${tileHtml(d, 'mx-', true)}
+  $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal max" role="dialog" aria-modal="true" aria-label="${esc(d.t)}" data-max-id="${esc(d.id)}"><button type="button" class="close-x" data-close aria-label="بستن" title="بستن (Esc)">✕</button>${tileHtml(d, 'mx-', true)}
     <div class="modal-actions"><span class="spacer"></span><button type="button" class="btn" data-close>بستن</button></div></div></div>`;
   drawTiles([d], 'mx-');
   const btn = $('#modal-root [data-close]'); if (btn) btn.focus();
@@ -1270,6 +1275,7 @@ function openForm(ent, id, preset) {
   const head = existing ? `ویرایش ${esc(sc.one)}` : `${esc(sc.one)} جدید`;
   const subtitle = ent === 'children' && existing ? `${esc(rec.name)} · ${esc(rec.cls || '')} · ${esc(rec.group || '')} ${esc(rec.attendance || '')}` : existing ? `کد ${esc(rec.id || '')}` : 'خانه‌های ستاره‌دار لازم‌اند.';
   $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <button type="button" class="close-x" data-close aria-label="بستن" title="بستن (Esc)">✕</button>
     <h2 id="m-title">${head}</h2><p class="sub">${subtitle}</p>
     ${ent === 'children' && existing ? childFinanceHtml(existing) + '<h4 style="margin:20px 0 10px;font-size:13px;color:var(--ink-2)">مشخصات</h4>' : ''}
     <form id="m-form" novalidate><div class="form-grid">${fields.map(f => fieldHtml(ent, f, rec)).join('')}</div>
@@ -1437,7 +1443,7 @@ function render() {
       <button class="btn primary edit-act" type="button" data-add="payments">+ دریافت جدید</button>
       <button class="btn edit-act" type="button" data-add="installments">+ چک یا قسط</button>
       <button class="btn edit-act" type="button" data-add="children">+ کودک جدید</button>
-      ${isDash ? `<button class="btn" type="button" data-present>${PRESENT ? 'خروج از ارائه' : 'ارائه تمام‌صفحه'}</button>` : ''}</div></div>
+      ${isDash ? `<button class="btn" type="button" data-present>${PRESENT ? 'خروج از ارائه' : 'ارائه تمام‌صفحه'}</button>` : `<a class="btn close-page" href="#dashboard" title="بستن و بازگشت به داشبورد (Esc)">✕ بستن</a>`}</div></div>
     ${fchips.length && !isDash && page !== 'settings' ? `<div class="chips">${fchips.join('')}</div>` : ''}
     ${STORAGE_OK ? '' : '<div class="banner">این مرورگر اجازه‌ی ذخیره‌سازی نمی‌دهد؛ تغییرات با بستن صفحه از بین می‌رود. از «تنظیمات ← دریافت خروجی اکسل» پشتیبان بگیرید.</div>'}`);
   if (isDash) renderDashboard(main);
@@ -1490,7 +1496,11 @@ document.addEventListener('change', async e => {
   if (MODAL && el.id === `f-${MODAL.ent}-childId`) updateChildHint(MODAL.ent);
   if (el.id === 'reimport' && el.files[0]) { if (await importFile(el.files[0])) render(); }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modal-root').innerHTML) closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($('#modal-root').innerHTML) { closeModal(); return; }
+  if (DB && currentPage() !== 'dashboard' && !e.target.closest('input, select, textarea')) location.hash = '#dashboard';
+});
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && PRESENT) { PRESENT = false; render(); } });
 let resizeTimer = null;
 window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => {
