@@ -266,6 +266,12 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 .sync.ok{color:var(--good)}
 .sync.busy{color:var(--info)}
 .sync.bad{color:var(--bad)}
+.sync.warn{color:var(--warn)}
+.banner.bad-banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:color-mix(in srgb,var(--bad) 14%,var(--panel-solid));border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.ro .edit-act,.ro [data-add],.ro [data-add-for],.ro [data-collect],.ro [data-del],.ro #m-form [type=submit],.ro label[for=reimport],.ro [data-migrate],.ro .tile .edit-link{display:none!important}
+body.bulk #app,body.bulk #modal-root{pointer-events:none;opacity:.55}
+#bulk-root .bulkbar{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:70;display:flex;gap:12px;align-items:center;direction:rtl;background:var(--tip);color:#fff;border:1px solid var(--line-strong);border-radius:12px;padding:10px 16px;box-shadow:0 0 24px rgba(170,70,255,.4);max-width:calc(100% - 32px)}
+#bulk-root .bulkbar.bad{border-color:var(--bad)}
 .banner.migrate{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:color-mix(in srgb,var(--c1) 16%,var(--panel-solid));border-color:var(--line-strong)}
 .banner.migrate .row{display:flex;gap:8px;flex-wrap:wrap}
 .loader{width:42px;height:42px;margin:18px auto 0;border-radius:50%;border:3px solid var(--track);border-top-color:var(--c3);animation:spin 1s linear infinite;box-shadow:0 0 18px rgba(255,90,200,.35)}
@@ -352,6 +358,7 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 <div id="app"></div>
 <div id="modal-root"></div>
 <div id="toast-root" aria-live="polite"></div>
+<div id="bulk-root" aria-live="polite"></div>
 
 <!-- اولین بار: فایل اکسل مهد به‌صورت base64 اینجا قرار می‌گیرد (اختیاری) -->
 <script id="seed-xlsx" type="text/plain"></script>
@@ -585,76 +592,243 @@ function savePrefs() { try { localStorage.setItem(KEY_PREFS, JSON.stringify(PREF
 /* ================= online sync =================
    Inside claude.ai the data lives on the server (the artifact's db): every device that opens the page
    sees the same records, other devices' changes arrive live, and «به‌روزرسانی» re-reads everything.
+   A form save closes only after the server confirms it; one-click actions (delete, collect, undo) are
+   shown at once and, if the server refuses them, stay listed as unsaved with a retry button.
    Opened as a plain file (no window.claude) the page keeps working from this browser's storage. */
-const CLOUD = { on: false, db: null, ready: false, bulk: false, pending: 0, error: '', unsubs: [], q: Promise.resolve(), extra: null, ids: {}, lastSync: null, failedOnce: false };
+const CLOUD = {
+  on: false, db: null, ready: false, bulk: false, bulkLeft: null, readOnly: false, roReason: '', error: '',
+  qs: {}, inflight: 0, local: new Map(), subs: {}, subTries: {}, dead: new Set(), got: new Set(),
+  extra: null, ids: {}, lastSync: null, emptyConfirmed: false, checkingEmpty: false,
+};
 const KEY_MIGRATION = 'mahd-dashboard.migration';
-let LOCAL = null; // data a previous (trial) version saved in this browser, offered for transfer once
+const TAB_ID = 'tab-' + Math.random().toString(36).slice(2, 10);
+const TERMINAL = new Set(['revoked', 'not_granted', 'capability_disabled', 'capability_removed', 'invalid_argument', 'transform_error']);
+const KNOWN = new Set([...TERMINAL, 'unavailable', 'resource_exhausted', 'quota_exceeded']);
+let LOCAL = null;       // data a previous (trial) version saved in this browser, offered for transfer once
+let LOCAL_VIEW = false; // showing that old copy read-only because the server is unreachable
 const SAFE_SEG = /^[A-Za-z0-9_\-.~:@+]{1,180}$/;
 const docKey = id => { const s = String(id ?? ''); return SAFE_SEG.test(s) && s !== '.' && s !== '..' ? s : 'k-' + Array.from(new TextEncoder().encode(s)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 170); };
 const plain = o => JSON.parse(JSON.stringify(o, (k, v) => v === undefined ? null : v));
 const natSort = list => list.sort((a, b) => String(a.id ?? '').localeCompare(String(b.id ?? ''), 'en', { numeric: true }));
-function cloudErrText(e) {
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const retryable = e => { const c = e && e.code; return !!c && (c === 'unavailable' || c === 'resource_exhausted' || !KNOWN.has(c)); };
+async function withRetry(fn, tries = 4) {
+  let wait = 500;
+  for (let i = 0; ; i++) {
+    try { return await fn(); }
+    catch (e) { if (i >= tries - 1 || !retryable(e)) throw e; await sleep(wait + Math.random() * wait); wait *= 2; }
+  }
+}
+function cloudErrText(e, ctx) {
   const c = e && e.code;
   if (c === 'quota_exceeded') return 'فضای ذخیره‌سازی پر شده است.';
-  if (c === 'invalid_argument') return 'اجازه‌ی ثبت تغییر در این صفحه را ندارید.';
+  if (c === 'invalid_argument') return ctx === 'bulk' ? 'بخشی از اطلاعات قابل ذخیره نبود (حجم یا ساختار نامعتبر).' : 'اجازه‌ی ثبت تغییر در این صفحه را ندارید.';
   if (c === 'revoked' || c === 'not_granted' || c === 'capability_disabled' || c === 'capability_removed') return 'دسترسی به ذخیره‌سازی قطع شد؛ صفحه را دوباره باز کنید.';
-  if (c === 'resource_exhausted') return 'تعداد درخواست‌ها زیاد بود؛ چند ثانیه بعد دوباره امتحان کنید.';
+  if (c === 'resource_exhausted') return 'سرور شلوغ است؛ چند لحظه بعد دوباره امتحان کنید.';
+  if (c === 'busy') return 'سرور مشغول ثبت مورد دیگری است؛ دوباره ذخیره کنید.';
   return 'اتصال اینترنت را بررسی کنید.';
 }
-async function withRetry(fn) {
-  try { return await fn(); }
-  catch (e) { if (e && e.code === 'unavailable') { await new Promise(r => setTimeout(r, 500 + Math.random() * 1000)); return fn(); } throw e; }
+const unsavedCount = () => { let n = 0; for (const x of CLOUD.local.values()) if (x.failed) n++; return n; };
+function editBlocked() {
+  if (CLOUD.bulk || CLOUD.bulkLeft) { toast('در حال ارسال اطلاعات به سرور؛ چند لحظه صبر کنید.'); return true; }
+  if (LOCAL_VIEW) { toast('این نسخه‌ی قدیمیِ همین مرورگر فقط برای مشاهده است.'); return true; }
+  if (CLOUD.readOnly) { toast(CLOUD.roReason === 'revoked' ? 'دسترسی به ذخیره‌سازی قطع شد؛ صفحه را دوباره باز کنید.' : 'این صفحه برای شما فقط قابل مشاهده است.'); return true; }
+  return false;
 }
 function updateSyncChip() {
   const el = document.getElementById('sync'); if (!el) return;
-  el.className = 'sync ' + (CLOUD.error ? 'bad' : CLOUD.pending ? 'busy' : 'ok');
-  el.textContent = CLOUD.error ? `⚠ ذخیره نشد · ${CLOUD.error}` : CLOUD.pending ? 'در حال ذخیره روی سرور…'
-    : `● همگام با سرور${META.savedAt ? ` · آخرین تغییر ${new Date(META.savedAt).toLocaleString('fa-IR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}` : ''}`;
+  const n = unsavedCount();
+  let cls = 'ok', txt = `● همگام با سرور${META.savedAt ? ` · آخرین تغییر ${new Date(META.savedAt).toLocaleString('fa-IR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}` : ''}`;
+  if (CLOUD.bulkLeft) { cls = 'bad'; txt = '⚠ ارسال اطلاعات نیمه‌کاره ماند'; }
+  else if (CLOUD.readOnly) { cls = 'bad'; txt = CLOUD.roReason === 'revoked' ? '⚠ دسترسی قطع شد' : 'فقط مشاهده'; }
+  else if (n) { cls = 'bad'; txt = `⚠ ${faNum(n)} تغییر روی سرور ذخیره نشد`; }
+  else if (CLOUD.bulk || CLOUD.inflight) { cls = 'busy'; txt = 'در حال ذخیره روی سرور…'; }
+  else if (CLOUD.dead.size) { cls = 'warn'; txt = 'اتصال زنده قطع است؛ «به‌روزرسانی» را بزنید'; }
+  el.className = 'sync ' + cls; el.textContent = txt;
 }
-/* one write at a time, in order; the screen already shows the change */
-function cloudWrite(fn) {
-  CLOUD.pending++; updateSyncChip();
-  CLOUD.q = CLOUD.q.then(() => withRetry(fn)).then(() => { CLOUD.error = ''; }, e => { CLOUD.error = cloudErrText(e); toast(`ذخیره روی سرور انجام نشد: ${CLOUD.error}`); })
-    .finally(() => { CLOUD.pending--; updateSyncChip(); });
-  return CLOUD.q;
+/* one write at a time per document */
+function enqueue(path, fn) {
+  CLOUD.inflight++; updateSyncChip();
+  const p = (CLOUD.qs[path] || Promise.resolve()).then(() => withRetry(fn));
+  CLOUD.qs[path] = p.catch(() => {});
+  return p.finally(() => { CLOUD.inflight--; updateSyncChip(); });
 }
+let metaTimer = null;
 function touchMeta(extra) {
   META = { ...META, ...(extra || {}), savedAt: new Date().toISOString() };
-  const m = plain(META);
-  return cloudWrite(() => CLOUD.db.doc('meta/info').set(m));
+  if (!CLOUD.on) return;
+  clearTimeout(metaTimer);
+  metaTimer = setTimeout(() => { const m = plain(META); enqueue('meta/info', () => CLOUD.db.doc('meta/info').set(m)).catch(() => {}); }, 800);
 }
-function persistRec(ent, rec) {
-  if (!CLOUD.on) { save(); return; }
-  const r = plain(rec);
-  cloudWrite(() => CLOUD.db.doc(`${ent}/${docKey(r.id)}`).set(r)); touchMeta();
+/* optimistic write for one-click actions; failures stay listed (and overlaid on screen) until retried */
+function writeRecord(ent, key, body) {
+  const path = `${ent}/${key}`, tok = {};
+  CLOUD.local.set(path, { ent, key, body, tok, failed: false });
+  const run = () => body ? CLOUD.db.doc(path).set(body) : CLOUD.db.doc(path).delete();
+  return enqueue(path, run).then(() => {
+    const cur = CLOUD.local.get(path); if (cur && cur.tok === tok) CLOUD.local.delete(path);
+    if (!unsavedCount()) CLOUD.error = '';
+    touchMeta(); updateSyncChip();
+    return true;
+  }, e => {
+    const cur = CLOUD.local.get(path); if (cur && cur.tok === tok) cur.failed = true;
+    CLOUD.error = cloudErrText(e, 'record');
+    if (e && (e.code === 'invalid_argument' || e.code === 'revoked' || e.code === 'not_granted')) { setReadOnly(e); return false; }
+    toast(`ذخیره روی سرور انجام نشد: ${CLOUD.error}`); scheduleRender();
+    return false;
+  });
 }
-function persistDel(ent, id) {
-  if (!CLOUD.on) { save(); return; }
-  cloudWrite(() => CLOUD.db.doc(`${ent}/${docKey(id)}`).delete()); touchMeta();
+function retryUnsaved() {
+  if (!CLOUD.on || CLOUD.readOnly) return;
+  for (const x of [...CLOUD.local.values()]) if (x.failed) writeRecord(x.ent, x.key, x.body);
+}
+function persistRec(ent, rec) { if (LOCAL_VIEW) return; if (!CLOUD.on) { save(); return; } const r = plain(rec); writeRecord(ent, docKey(r.id), r); }
+function persistDel(ent, id) { if (LOCAL_VIEW) return; if (!CLOUD.on) { save(); return; } writeRecord(ent, docKey(id), null); }
+/* form saves wait for the server; a new record takes a code no other device holds */
+function bumpCode(ent, id) { const n = (parseInt(String(id).replace(/\D/g, ''), 10) || 0) + 1; return SCHEMA[ent].prefix + String(n).padStart(SCHEMA[ent].pad, '0'); }
+async function saveRecordNow(ent, rec, isNew) {
+  if (isNew) {
+    const lock = CLOUD.db.doc(`locks/${ent}`);
+    if (typeof lock.acquire === 'function') {
+      let got = false;
+      for (let i = 0; i < 30 && !got; i++) {
+        try { got = (await lock.acquire({ holder: TAB_ID, ttlMs: 3000 })).acquired; } catch (e) { if (!retryable(e)) throw e; }
+        if (!got) await sleep(250 + Math.random() * 300);
+      }
+      if (!got) throw { code: 'busy' };
+    }
+    for (let i = 0; ; i++) {
+      const path = `${ent}/${docKey(rec.id)}`;
+      const sn = await withRetry(() => CLOUD.db.doc(path).get());
+      if (!sn.exists && !CLOUD.local.has(path)) break;
+      if (i >= 300) throw { code: 'busy' };
+      rec.id = bumpCode(ent, rec.id);
+    }
+  }
+  for (let attempt = 0; ; attempt++) {
+    const path = `${ent}/${docKey(rec.id)}`, body = plain(rec), mark = `${TAB_ID}-${Date.now()}-${attempt}`;
+    if (isNew) body._w = mark;
+    await enqueue(path, () => CLOUD.db.doc(path).set(body));
+    CLOUD.local.delete(path);
+    if (!isNew) return;
+    // belt and braces: if another device wrote the same new code at the same moment, move ours to the next free code
+    await sleep(300);
+    const sn = await withRetry(() => CLOUD.db.doc(path).get());
+    if (!sn.exists || (sn.data() || {})._w === mark) return;
+    if (attempt >= 5) throw { code: 'busy' };
+    do { rec.id = bumpCode(ent, rec.id); } while ((await withRetry(() => CLOUD.db.doc(`${ent}/${docKey(rec.id)}`).get())).exists);
+  }
+}
+/* duplicate codes (possible in an Excel file) would collapse into one server document: give repeats new codes */
+function dedupeCodes(data) {
+  const renamed = [], prev = DB; DB = data;
+  try {
+    for (const ent of ENTS) {
+      const seen = new Set();
+      for (const r of data[ent]) {
+        if (!r.id || seen.has(docKey(r.id))) { const old = r.id; r.id = nextId(ent); while (seen.has(docKey(r.id))) r.id = bumpCode(ent, r.id); if (old) renamed.push(`${SCHEMA[ent].title}: ${old} ← ${r.id}`); }
+        seen.add(docKey(r.id));
+      }
+    }
+  } finally { DB = prev; }
+  return renamed;
+}
+/* extra workbook sheets (راهنما, تقویم) are kept for the Excel backup, split into documents under 256 KiB */
+function extraDocs(x) {
+  const index = [], docs = [], enc = new TextEncoder();
+  let n = 0;
+  for (const sh of (x && x.sheets) || []) {
+    let part = [], size = 0, k = 0;
+    const flush = () => { const id = 'x' + (n++); docs.push({ path: `meta-extra/${id}`, body: { name: sh.name, part: k++, rows: part } }); index.push(id); part = []; size = 0; };
+    for (const row of sh.rows || []) { const s = enc.encode(JSON.stringify(row)).length + 1; if (size + s > 200000 && part.length) flush(); part.push(row); size += s; }
+    flush();
+  }
+  docs.unshift({ path: 'meta/extra', body: { order: (x && x.order) || [], chunks: index } });
+  return docs;
+}
+async function loadCloudExtra() {
+  const sn = await withRetry(() => CLOUD.db.doc('meta/extra').get()); if (!sn.exists) return null;
+  const d = sn.data();
+  if (!d.chunks) return { order: d.order || [], sheets: d.sheets || [] };
+  const parts = await Promise.all(d.chunks.map(id => withRetry(() => CLOUD.db.doc(`meta-extra/${id}`).get())));
+  const sheets = [];
+  for (const p of parts) { if (!p.exists) continue; const b = p.data(); let s = sheets.find(x => x.name === b.name); if (!s) sheets.push(s = { name: b.name, rows: [] }); s.rows.push(...(b.rows || [])); }
+  return { order: d.order || [], sheets };
 }
 /* replace everything on the server with what DB holds now (Excel re-import, transfer from this browser) */
-async function persistAll(extraSheets) {
-  if (!CLOUD.on) { save(); if (extraSheets !== undefined) saveExtra(extraSheets); return true; }
-  const tasks = [];
-  for (const ent of ENTS) {
-    const keep = new Set(DB[ent].map(r => docKey(r.id)));
-    for (const k of (CLOUD.ids[ent] || [])) if (!keep.has(k)) tasks.push(() => CLOUD.db.doc(`${ent}/${k}`).delete());
-    for (const r of DB[ent]) { const body = plain(r); tasks.push(() => CLOUD.db.doc(`${ent}/${docKey(body.id)}`).set(body)); }
-  }
-  if (extraSheets !== undefined) { const x = plain(extraSheets || { order: [], sheets: [] }); CLOUD.extra = x; tasks.push(() => CLOUD.db.doc('meta/extra').set(x)); }
-  CLOUD.bulk = true; CLOUD.pending++; updateSyncChip();
+function setBulkUi(on, text) {
+  document.body.classList.toggle('bulk', !!on);
+  const root = $('#bulk-root'); if (!root) return;
+  if (!on && !CLOUD.bulkLeft) { root.innerHTML = ''; return; }
+  root.innerHTML = CLOUD.bulkLeft
+    ? `<div class="bulkbar bad"><span>ارسال اطلاعات به سرور نیمه‌کاره ماند (${esc(CLOUD.error)}). بخشی از اطلاعات سرور هنوز قدیمی است.</span><button class="btn primary sm" type="button" data-bulk-resume>ادامه‌ی ارسال</button></div>`
+    : `<div class="bulkbar"><span>${esc(text || 'در حال ارسال اطلاعات به سرور…')}</span></div>`;
+}
+async function runBulk(tasks) {
+  const total = tasks.length, queue = tasks.slice();
   let done = 0, failed = null;
-  const worker = async () => { while (tasks.length && !failed) { const t = tasks.shift(); try { await withRetry(t); } catch (e) { failed = e; } done++; if (done % 10 === 0) toast(`در حال ارسال اطلاعات به سرور… ${faNum(done)}`); } };
-  await Promise.all([worker(), worker(), worker(), worker()]);
-  CLOUD.pending--; CLOUD.bulk = false;
-  if (failed) { CLOUD.error = cloudErrText(failed); updateSyncChip(); toast(`ارسال کامل نشد: ${CLOUD.error}`); await refreshAll(true); return false; }
-  CLOUD.error = ''; await touchMeta(); await refreshAll(true);
+  const worker = async () => {
+    while (queue.length && !failed) {
+      const t = queue.shift();
+      try { await withRetry(t.fn, 6); done++; if (done % 5 === 0 || done === total) setBulkUi(true, `در حال ارسال اطلاعات به سرور… ${faNum(done)} از ${faNum(total)}`); }
+      catch (e) { failed = e; queue.unshift(t); }
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  if (failed) { CLOUD.bulkLeft = queue; CLOUD.error = cloudErrText(failed, 'bulk'); return false; }
+  CLOUD.bulkLeft = null;
+  META = { ...META, savedAt: new Date().toISOString() };
+  await withRetry(() => CLOUD.db.doc('meta/info').set(plain(META)), 6);
   return true;
+}
+async function finishBulk(ok) {
+  CLOUD.bulk = false; setBulkUi(false); updateSyncChip();
+  if (ok) CLOUD.error = '';
+  await refreshAll(true);
+  if (!ok) setBulkUi(false);
+  return ok;
+}
+async function persistAll(extraSheets) {
+  if (LOCAL_VIEW) return false;
+  if (!CLOUD.on) { save(); if (extraSheets !== undefined) saveExtra(extraSheets); return true; }
+  if (CLOUD.bulk || CLOUD.bulkLeft) { toast('ارسال قبلی هنوز تمام نشده است.'); return false; }
+  CLOUD.bulk = true; setBulkUi(true); updateSyncChip();
+  let ok = false;
+  try {
+    clearTimeout(metaTimer);
+    await Promise.all(Object.values(CLOUD.qs));   // writes already queued go first
+    CLOUD.local.clear();
+    const sets = [], dels = [];
+    if (extraSheets !== undefined) {
+      const docs = extraDocs(extraSheets);
+      for (const d of docs) sets.push({ fn: () => CLOUD.db.doc(d.path).set(plain(d.body)) });
+      CLOUD.extra = extraSheets;
+      try { const old = await withRetry(() => CLOUD.db.collection('meta-extra').get()); const keep = new Set(docs.map(d => d.path)); for (const d of old.docs) if (!keep.has(`meta-extra/${d.id}`)) dels.push({ fn: () => CLOUD.db.doc(`meta-extra/${d.id}`).delete() }); } catch (e) {}
+    }
+    for (const ent of ENTS) {
+      const keep = new Set();
+      for (const r of DB[ent]) { const body = plain(r), k = docKey(body.id); keep.add(k); sets.push({ fn: () => CLOUD.db.doc(`${ent}/${k}`).set(body) }); }
+      for (const k of (CLOUD.ids[ent] || [])) if (!keep.has(k)) dels.push({ fn: () => CLOUD.db.doc(`${ent}/${k}`).delete() });
+    }
+    ok = await runBulk([...sets, ...dels]);   // every set before any delete
+  } catch (e) { CLOUD.error = cloudErrText(e, 'bulk'); ok = false; }
+  return finishBulk(ok);
+}
+async function resumeBulk() {
+  if (!CLOUD.bulkLeft || CLOUD.bulk) return;
+  CLOUD.bulk = true; const left = CLOUD.bulkLeft; CLOUD.bulkLeft = null; setBulkUi(true); updateSyncChip();
+  let ok = false;
+  try { ok = await runBulk(left); } catch (e) { CLOUD.error = cloudErrText(e, 'bulk'); }
+  await finishBulk(ok);
+  toast(ok ? 'ارسال اطلاعات به سرور کامل شد.' : `ارسال هنوز کامل نشد: ${CLOUD.error}`);
 }
 function applySnap(ent, snap) {
   CLOUD.ids[ent] = new Set(snap.docs.map(d => d.id));
   if (CLOUD.bulk) return;
-  DB[ent] = natSort(snap.docs.map(d => ({ ...d.data() })));
+  const m = new Map(snap.docs.map(d => [d.id, d.data()]));
+  for (const x of CLOUD.local.values()) if (x.ent === ent) { if (x.body) m.set(x.key, x.body); else m.delete(x.key); }
+  DB[ent] = natSort([...m.values()].filter(Boolean).map(b => ({ ...b })));
+  if (DB[ent].length) CLOUD.emptyConfirmed = false;
 }
 let renderTimer = null;
 function scheduleRender() {
@@ -666,19 +840,62 @@ function scheduleRender() {
     render();
   }, 150);
 }
+const SUB_KEYS = () => [...ENTS, 'meta'];
+const refOf = k => k === 'meta' ? CLOUD.db.doc('meta/info') : CLOUD.db.collection(k);
+function onData(k, snap) {
+  if (k === 'meta') { if (!CLOUD.bulk) META = snap.exists ? { ...snap.data() } : {}; }
+  else applySnap(k, snap);
+}
+function arrived(k) {
+  if (CLOUD.got.has(k)) return;
+  CLOUD.got.add(k);
+  if (CLOUD.got.size === SUB_KEYS().length && !CLOUD.ready) { CLOUD.ready = true; CLOUD.lastSync = new Date(); render(); }
+}
+function sub(k) {
+  try { if (CLOUD.subs[k]) CLOUD.subs[k](); } catch (e) {}
+  try {
+    CLOUD.subs[k] = refOf(k).onSnapshot(snap => {
+      CLOUD.dead.delete(k); CLOUD.subTries[k] = 0; onData(k, snap);
+      if (!(snap.metadata && snap.metadata.fromCache)) arrived(k);
+      if (CLOUD.ready) scheduleRender();
+    }, e => subFailed(k, e));
+  } catch (e) { subFailed(k, e); }
+}
+function subFailed(k, e) {
+  CLOUD.dead.add(k); updateSyncChip();
+  if (e && (e.code === 'revoked' || e.code === 'not_granted')) setReadOnly(e);
+  else if (!(e && TERMINAL.has(e.code)) && (CLOUD.subTries[k] = (CLOUD.subTries[k] || 0) + 1) <= 20) setTimeout(() => sub(k), 2000 + Math.random() * 3000);
+  if (!CLOUD.got.has(k)) fetchOnce(k);
+}
+async function fetchOnce(k) {
+  try { const snap = await withRetry(() => refOf(k).get()); onData(k, snap); arrived(k); if (CLOUD.ready) scheduleRender(); }
+  catch (e) { if (!CLOUD.ready) showLoadError(cloudErrText(e)); }
+}
+function showLoadError(msg) {
+  $('#app').innerHTML = `<main style="grid-column:1/-1"><div class="welcome"><h1 class="brand" style="font-size:52px">داشبورد مهد</h1>
+    <p style="color:var(--ink-2)">دریافت اطلاعات از سرور انجام نشد: ${esc(msg)}</p><p><button class="btn primary" type="button" data-retry-load>تلاش دوباره</button></p>
+    ${LOCAL ? '<p><button class="btn" type="button" data-use-local>نمایش اطلاعات قدیمیِ همین مرورگر (فقط مشاهده)</button></p>' : ''}</div></main>`;
+}
 async function refreshAll(silent) {
   if (!CLOUD.on) { render(); return; }
+  syncToday();
+  for (const k of [...CLOUD.dead]) { CLOUD.subTries[k] = 0; sub(k); }
+  retryUnsaved();
   const btn = document.querySelector('[data-refresh]'); if (btn) { btn.disabled = true; btn.textContent = 'در حال دریافت…'; }
   try {
     for (const ent of ENTS) applySnap(ent, await withRetry(() => CLOUD.db.collection(ent).get()));
     const m = await withRetry(() => CLOUD.db.doc('meta/info').get()); META = m.exists ? { ...m.data() } : {};
-    CLOUD.lastSync = new Date(); CLOUD.error = '';
+    CLOUD.lastSync = new Date();
+    if (!unsavedCount() && !CLOUD.bulkLeft && !CLOUD.readOnly) CLOUD.error = '';
     render(); if (!silent) toast('اطلاعات از سرور به‌روز شد.');
-  } catch (e) { if (btn) { btn.disabled = false; btn.textContent = '🔄 به‌روزرسانی'; } toast(`به‌روزرسانی انجام نشد: ${cloudErrText(e)}`); }
+  } catch (e) { if (btn) { btn.disabled = false; btn.textContent = '🔄 به‌روزرسانی'; } if (!silent) toast(`به‌روزرسانی انجام نشد: ${cloudErrText(e)}`); }
 }
-function cloudFailed(e) {
-  CLOUD.error = cloudErrText(e); updateSyncChip();
-  if (!CLOUD.failedOnce) { CLOUD.failedOnce = true; toast(`ارتباط زنده با سرور قطع شد: ${CLOUD.error}`); }
+function setReadOnly(e) {
+  if (CLOUD.readOnly) return;
+  CLOUD.readOnly = true; CLOUD.roReason = e && e.code === 'invalid_argument' ? 'view' : 'revoked';
+  CLOUD.error = cloudErrText(e, 'record'); CLOUD.local.clear();
+  toast(CLOUD.roReason === 'revoked' ? 'دسترسی به ذخیره‌سازی قطع شد؛ صفحه را دوباره باز کنید.' : 'این صفحه برای شما فقط قابل مشاهده است؛ تغییرات ذخیره نمی‌شود.');
+  if (CLOUD.roReason === 'view') refreshAll(true); else render();
 }
 function localHasEdits() {
   if (!LOCAL || !LOCAL.meta) return false;
@@ -687,37 +904,49 @@ function localHasEdits() {
   const a = Date.parse(LOCAL.meta.importedAt || ''), b = Date.parse(LOCAL.meta.savedAt || '');
   return !isNaN(a) && !isNaN(b) && b - a > 90000;
 }
+const migrationDone = () => { try { return localStorage.getItem(KEY_MIGRATION) === 'done'; } catch (e) { return false; } };
 function setMigrationFlag(v) { try { localStorage.setItem(KEY_MIGRATION, v); } catch (e) {} }
 async function transferLocal() {
-  if (!LOCAL) return;
-  DB = JSON.parse(JSON.stringify(LOCAL.data)); for (const e of ENTS) if (!Array.isArray(DB[e])) DB[e] = [];
+  if (!LOCAL || editBlocked()) return;
+  const data = JSON.parse(JSON.stringify(LOCAL.data)); for (const e of ENTS) if (!Array.isArray(data[e])) data[e] = [];
+  const renamed = dedupeCodes(data);
   let extra; try { extra = JSON.parse(localStorage.getItem(KEY_EXTRA) || 'null') || undefined; } catch (e) { extra = undefined; }
+  setBulkUi(true); // lock the page before the new data is on screen
+  DB = data;
   META = { ...META, importedAt: LOCAL.meta.importedAt || META.importedAt, source: 'انتقال از نسخه‌ی آزمایشی' };
-  render(); toast('در حال انتقال اطلاعات این مرورگر به سرور…');
   const ok = await persistAll(extra);
-  if (ok) { setMigrationFlag('done'); toast('اطلاعات این مرورگر به نسخه‌ی آنلاین منتقل شد.'); render(); }
+  if (ok) { setMigrationFlag('done'); render(); toast(`اطلاعات این مرورگر به نسخه‌ی آنلاین منتقل شد.${renamed.length ? ` ${faNum(renamed.length)} کد تکراری عوض شد.` : ''}`); }
+  else toast(`انتقال کامل نشد: ${CLOUD.error}`);
+}
+async function confirmEmpty() {
+  if (CLOUD.checkingEmpty) return;
+  CLOUD.checkingEmpty = true;
+  try {
+    let any = false;
+    for (const ent of ['children', 'payments', 'staff']) { const s = await withRetry(() => CLOUD.db.collection(ent).get()); applySnap(ent, s); if (s.docs.length) any = true; }
+    CLOUD.emptyConfirmed = !any;
+  } catch (e) { CLOUD.emptyConfirmed = false; showLoadError(cloudErrText(e)); CLOUD.checkingEmpty = false; return; }
+  CLOUD.checkingEmpty = false; render();
 }
 function renderLoading(msg) {
   $('#app').innerHTML = `<main style="grid-column:1/-1"><div class="welcome"><h1 class="brand" style="font-size:52px">داشبورد مهد</h1><p style="color:var(--ink-2)">${esc(msg)}</p><div class="loader" aria-hidden="true"></div></div></main>`;
 }
 function startCloud(db) {
   CLOUD.on = true; CLOUD.db = db; DB = Object.fromEntries(ENTS.map(e => [e, []])); META = {};
-  const waiting = new Set([...ENTS, 'meta']);
-  const arrived = k => { if (waiting.delete(k) && !waiting.size && !CLOUD.ready) { CLOUD.ready = true; CLOUD.lastSync = new Date(); render(); } };
-  for (const ent of ENTS) {
-    try { CLOUD.unsubs.push(db.collection(ent).onSnapshot(snap => { applySnap(ent, snap); arrived(ent); if (CLOUD.ready) scheduleRender(); }, cloudFailed)); }
-    catch (e) { cloudFailed(e); arrived(ent); }
-  }
-  try { CLOUD.unsubs.push(db.doc('meta/info').onSnapshot(sn => { if (!CLOUD.bulk) META = sn.exists ? { ...sn.data() } : {}; arrived('meta'); if (CLOUD.ready) scheduleRender(); }, cloudFailed)); }
-  catch (e) { cloudFailed(e); arrived('meta'); }
-  setTimeout(() => { if (!CLOUD.ready) renderLoading('اتصال به سرور کمی طول کشیده است… اگر طولانی شد، اینترنت را بررسی کنید و صفحه را دوباره باز کنید.'); }, 9000);
+  SUB_KEYS().forEach(sub);
+  setTimeout(() => { if (!CLOUD.ready) { renderLoading('اتصال به سرور کمی طول کشیده است…'); SUB_KEYS().filter(k => !CLOUD.got.has(k)).forEach(fetchOnce); } }, 9000);
 }
 function cloudUnavailable() {
   if (CLOUD.on) return;
   $('#app').innerHTML = `<main style="grid-column:1/-1"><div class="welcome"><h1 class="brand" style="font-size:52px">داشبورد مهد</h1>
     <p style="color:var(--ink-2)">اتصال به ذخیره‌سازی آنلاین برقرار نشد. اگر وارد حساب claude.ai نیستید، وارد شوید و همین لینک را دوباره باز کنید.</p>
-    ${LOCAL ? '<p><button class="btn" type="button" data-use-local>نمایش اطلاعات ذخیره‌شده در همین مرورگر (بدون همگام‌سازی)</button></p>' : ''}</div></main>`;
+    ${LOCAL ? '<p><button class="btn" type="button" data-use-local>نمایش اطلاعات قدیمیِ همین مرورگر (فقط مشاهده)</button></p>' : ''}</div></main>`;
 }
+function syncToday() { const t = todayJdn(); if (t === TODAY_JDN) return false; TODAY_JDN = t; TODAY = fromJdn(t); return true; }
+setInterval(() => { if (syncToday() && DB && (!CLOUD.on || CLOUD.ready) && !$('#modal-root').innerHTML) render(); }, 60000);
+window.addEventListener('beforeunload', e => { if (CLOUD.on && (CLOUD.inflight || CLOUD.bulk || CLOUD.bulkLeft || unsavedCount() || SUBMITTING)) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('online', () => { if (CLOUD.on && CLOUD.ready) refreshAll(true); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && CLOUD.on && CLOUD.ready && (unsavedCount() || CLOUD.dead.size)) refreshAll(true); });
 
 /* ================= Excel import / export ================= */
 function cleanVal(f, v) {
@@ -802,7 +1031,7 @@ function buildWorkbook() {
 }
 async function exportExcel() {
   if (!window.XLSX) { toast('کتابخانه‌ی اکسل بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.'); return; }
-  if (CLOUD.on && !CLOUD.extra) { try { const sn = await withRetry(() => CLOUD.db.doc('meta/extra').get()); CLOUD.extra = sn.exists ? { ...sn.data() } : null; } catch (e) {} }
+  if (CLOUD.on && !CLOUD.extra) { try { CLOUD.extra = await loadCloudExtra(); } catch (e) {} }
   const wb = buildWorkbook();
   const filename = `mahd-backup-${TODAY.replace(/\//g, '-')}.xlsx`;
   let dl = null;
@@ -828,10 +1057,12 @@ async function importFile(file) {
     const wb = await readWorkbookFile(file);
     const { data, report, extra } = importWorkbook(wb);
     if (!data.children.length) { toast('شیت «کودکان» در این فایل پیدا نشد یا خالی است.'); return false; }
+    let renamed = [];
+    if (CLOUD.on) { if (editBlocked()) return false; renamed = dedupeCodes(data); setBulkUi(true); }
     DB = data; META = { ...(CLOUD.on ? META : {}), importedAt: new Date().toISOString(), source: file.name, report };
-    if (CLOUD.on) { render(); toast('در حال ارسال اطلاعات فایل به سرور…'); if (!(await persistAll(extra))) return false; }
+    if (CLOUD.on) { if (!(await persistAll(extra))) { toast(`ارسال اطلاعات فایل به سرور کامل نشد: ${CLOUD.error}`); return false; } }
     else { saveExtra(extra); save(); }
-    toast(`اطلاعات از «${file.name}» وارد شد: ${faNum(data.children.length)} کودک، ${faNum(data.payments.length)} دریافت.`);
+    toast(`اطلاعات از «${file.name}» وارد شد: ${faNum(report.children || 0)} کودک، ${faNum(report.payments || 0)} دریافت.${renamed.length ? ` ${faNum(renamed.length)} کد تکراری عوض شد (${renamed.slice(0, 3).join('، ')}${renamed.length > 3 ? '، …' : ''}).` : ''}`);
     return true;
   } catch (e) { toast('این فایل خوانده نشد. یک فایل ‎.xlsx‎ با ساختار شیت‌های مهد انتخاب کنید.'); return false; }
 }
@@ -1416,6 +1647,7 @@ function childFinanceHtml(c) {
 }
 let MODAL = null;
 function openForm(ent, id, preset) {
+  syncToday();
   const sc = SCHEMA[ent], existing = id ? DB[ent].find(r => r.id === id) : null;
   if (id && !existing) return;
   const rec = existing ? { ...existing } : newRecord(ent, preset);
@@ -1434,7 +1666,7 @@ function openForm(ent, id, preset) {
   if (ent === 'payments' || ent === 'installments') updateChildHint(ent);
   const first = $('#m-form input:not([readonly]), #m-form select'); if (first) first.focus();
 }
-function closeModal() { destroyCharts('mx-'); $('#modal-root').innerHTML = ''; MODAL = null; if (BOARD_STALE && DB && currentPage() === 'dashboard') render(); }
+function closeModal() { if (SUBMITTING) return; destroyCharts('mx-'); $('#modal-root').innerHTML = ''; MODAL = null; if (BOARD_STALE && DB && currentPage() === 'dashboard') render(); }
 function updateMoneyHint(id, f) {
   const el = document.getElementById(id), h = document.getElementById(id + '-hint'); if (!el || !h) return;
   const n = parseMoney(el.value);
@@ -1465,23 +1697,32 @@ function readForm() {
 }
 let SUBMITTING = false;
 async function submitForm() {
-  if (SUBMITTING) return;
+  if (SUBMITTING) { toast('در حال ذخیره…'); return; }
+  if (CLOUD.on && editBlocked()) return;
   const out = readForm(); if (!out) { toast('چند خانه نیاز به اصلاح دارند.'); return; }
-  const { ent, id } = MODAL;
-  if (!id) {
-    if (DB[ent].some(r => r.id === out.id)) out.id = nextId(ent);
-    if (CLOUD.on) { // another device may have just used this code
-      SUBMITTING = true; const btn = $('#m-form button[type=submit]'); if (btn) { btn.disabled = true; btn.textContent = 'در حال ذخیره…'; }
-      try { for (let k = 0; k < 6; k++) { const sn = await withRetry(() => CLOUD.db.doc(`${ent}/${docKey(out.id)}`).get()); if (!sn.exists) break; const n = (parseInt(String(out.id).replace(/\D/g, ''), 10) || 0) + 1; out.id = SCHEMA[ent].prefix + String(n).padStart(SCHEMA[ent].pad, '0'); } }
-      catch (e) {} finally { SUBMITTING = false; }
+  const { ent, id } = MODAL, mine = MODAL;
+  if (!id && DB[ent].some(r => r.id === out.id)) out.id = nextId(ent);
+  if (CLOUD.on) { // the form closes only once the server has the record
+    SUBMITTING = true;
+    const btn = $('#m-form button[type=submit]'); if (btn) { btn.disabled = true; btn.textContent = 'در حال ذخیره روی سرور…'; }
+    try { await saveRecordNow(ent, out, !id); }
+    catch (e) {
+      SUBMITTING = false;
+      if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = 'ذخیره'; }
+      if (e && (e.code === 'invalid_argument' || e.code === 'revoked' || e.code === 'not_granted')) { setReadOnly(e); return; }
+      toast(`ذخیره نشد: ${cloudErrText(e, 'record')} فرم باز می‌ماند تا دوباره «ذخیره» را بزنید.`); return;
     }
+    SUBMITTING = false;
   }
   const list = DB[ent];
   if (id) { const i = list.findIndex(r => r.id === id); if (i >= 0) list[i] = out; else list.push(out); }
-  else list.push(out);
-  closeModal(); persistRec(ent, out); render(); toast(`${SCHEMA[ent].one} ${id ? 'به‌روز شد' : 'ثبت شد'}.`);
+  else if (!list.some(r => r.id === out.id)) list.push(out);
+  if (MODAL === mine) closeModal();
+  if (CLOUD.on) touchMeta(); else save();
+  render(); toast(`${SCHEMA[ent].one} ${id ? 'به‌روز شد' : 'ثبت شد'}.`);
 }
 function tryDelete(btn) {
+  if (CLOUD.on && editBlocked()) return;
   const { ent, id } = MODAL;
   if (ent === 'children') {
     const np = DB.payments.filter(p => p.childId === id).length, ni = DB.installments.filter(i => i.childId === id).length;
@@ -1490,15 +1731,18 @@ function tryDelete(btn) {
   if (ent === 'staff' && DB.salaries.some(s => s.staffId === id)) { toast('برای این نیرو حقوق ثبت شده است. به‌جای حذف، وضعیتش را «غیرفعال» کنید.'); return; }
   if (!btn.classList.contains('armed')) { btn.classList.add('armed'); btn.textContent = 'برای حذف دوباره بزنید'; setTimeout(() => { if (btn.isConnected) { btn.classList.remove('armed'); btn.textContent = 'حذف'; } }, 4000); return; }
   const i = DB[ent].findIndex(r => r.id === id), removed = DB[ent][i];
+  if (i < 0) { closeModal(); toast('این مورد روی دستگاه دیگری حذف شده است.'); render(); return; }
   DB[ent].splice(i, 1); closeModal(); persistDel(ent, id); render();
-  toast(`${SCHEMA[ent].one} حذف شد.`, () => { DB[ent].splice(Math.min(i, DB[ent].length), 0, removed); persistRec(ent, removed); render(); });
+  toast(`${SCHEMA[ent].one} حذف شد.`, () => { if (!removed || (CLOUD.on && editBlocked())) return; if (!DB[ent].some(r => r.id === removed.id)) DB[ent].splice(Math.min(i, DB[ent].length), 0, removed); persistRec(ent, removed); render(); });
 }
 function collect(id) {
+  if (CLOUD.on && editBlocked()) return;
+  syncToday();
   const it = DB.installments.find(i => i.id === id); if (!it) return;
   const before = { status: it.status, doneDate: it.doneDate };
   it.status = same(it.type, 'چک') ? 'وصول‌شده' : 'پرداخت‌شده'; it.doneDate = TODAY;
   persistRec('installments', it); render();
-  toast(`${it.type || 'قسط'} ${childById(it.childId)?.name || ''} به «${it.status}» تغییر کرد.`, () => { Object.assign(it, before); persistRec('installments', it); render(); });
+  toast(`${it.type || 'قسط'} ${childById(it.childId)?.name || ''} به «${it.status}» تغییر کرد.`, () => { if (CLOUD.on && editBlocked()) return; Object.assign(it, before); persistRec('installments', it); render(); });
 }
 
 /* ================= toast ================= */
@@ -1558,7 +1802,7 @@ function renderSettings(main) {
         <button class="btn primary" type="button" data-export>دریافت خروجی اکسل</button>
         <label class="btn" for="reimport">جایگزینی با فایل اکسل جدید</label><input id="reimport" type="file" accept=".xlsx,.xls" hidden>
         ${hasSeed ? '<button class="btn danger" type="button" data-reset>بازگشت به داده‌های اولیه</button>' : ''}
-        ${CLOUD.on && LOCAL ? '<button class="btn" type="button" data-migrate>انتقال اطلاعات ذخیره‌شده در همین مرورگر</button>' : ''}
+        ${CLOUD.on && LOCAL && !migrationDone() ? `<button class="btn" type="button" data-migrate>انتقال اطلاعات نسخه‌ی آزمایشیِ این مرورگر (آخرین تغییر: ${LOCAL.meta && LOCAL.meta.savedAt ? new Date(LOCAL.meta.savedAt).toLocaleDateString('fa-IR') : 'نامشخص'})</button>` : ''}
       </div>
       <p class="muted" style="margin-top:10px;font-size:12px">جایگزینی با فایل جدید، همه‌ی اطلاعات فعلی داشبورد را با محتوای آن فایل عوض می‌کند.</p></section>
     <section class="card"><h3>پوسته‌ی رنگی</h3><p>رنگ پس‌زمینه و کارت‌ها را انتخاب کنید. رنگ‌های نئونی نمودارها در همه‌ی پوسته‌ها یکسان می‌ماند.</p>
@@ -1572,7 +1816,7 @@ function renderWelcome() {
   $('#app').innerHTML = `<main style="grid-column:1/-1"><div class="welcome">
     <h1 class="brand" style="font-size:52px">داشبورد مهد</h1>
     <p style="color:var(--ink-2)">${CLOUD.on ? 'هنوز اطلاعاتی روی سرور ثبت نشده است. فایل اکسل اطلاعات مهد را یک بار وارد کنید؛ بعد از آن همه‌ی تغییرات را در خود داشبورد انجام می‌دهید و روی همه‌ی دستگاه‌ها یکسان دیده می‌شود.' : 'برای شروع، فایل اکسل اطلاعات مهد را یک بار وارد کنید. بعد از آن همه‌ی تغییرات را در خود داشبورد انجام می‌دهید و اطلاعات در همین مرورگر ذخیره می‌شود.'}</p>
-    ${CLOUD.on && LOCAL ? '<p><button class="btn primary" type="button" data-migrate-now>انتقال اطلاعات ذخیره‌شده در همین مرورگر</button></p>' : ''}
+    ${CLOUD.on && LOCAL && !migrationDone() ? '<p><button class="btn primary" type="button" data-migrate>انتقال اطلاعات ذخیره‌شده در همین مرورگر</button></p>' : ''}
     <label class="drop" id="drop" for="first-file"><p><b>فایل اکسل را اینجا رها کنید</b><br>یا برای انتخاب فایل کلیک کنید</p><span class="btn primary">انتخاب فایل اکسل</span></label>
     <input id="first-file" type="file" accept=".xlsx,.xls" hidden>
     <p class="muted" style="font-size:12px;margin-top:14px">شیت‌های قابل خواندن: ${ENTS.map(e => esc(SCHEMA[e].sheet)).join('، ')}</p>
@@ -1588,7 +1832,9 @@ function render() {
   document.documentElement.setAttribute('data-skin', PREFS.skin || 'neon');
   { const t = todayJdn(); if (t !== TODAY_JDN) { TODAY_JDN = t; TODAY = fromJdn(t); } }
   if (CLOUD.on && !CLOUD.ready) return;
-  if (!DB || (CLOUD.on && ENTS.every(e => !DB[e].length))) { renderWelcome(); return; }
+  document.body.classList.toggle('ro', !!(CLOUD.readOnly || LOCAL_VIEW));
+  if (CLOUD.on && DB && ENTS.every(e => !DB[e].length)) { if (!CLOUD.emptyConfirmed) { renderLoading('در حال دریافت اطلاعات از سرور…'); confirmEmpty(); return; } renderWelcome(); return; }
+  if (!DB) { renderWelcome(); return; }
   computeFin(); destroyCharts('ch-');
   const page = currentPage(), meta = PAGES.find(p => p.id === page);
   const prevMain = $('#main'), scrollTop = prevMain ? prevMain.scrollTop : 0, winY = window.scrollY;
@@ -1610,7 +1856,10 @@ function render() {
       ${CLOUD.on ? '<button class="btn" type="button" data-refresh title="دریافت آخرین اطلاعات از سرور">🔄 به‌روزرسانی</button>' : ''}
       ${isDash ? `<button class="btn" type="button" data-present>${PRESENT ? 'خروج از ارائه' : 'ارائه تمام‌صفحه'}</button>` : `<a class="btn close-page" href="#dashboard" title="بستن و بازگشت به داشبورد (Esc)">✕ بستن</a>`}</div></div>
     ${fchips.length && !isDash && page !== 'settings' ? `<div class="chips">${fchips.join('')}</div>` : ''}
-    ${CLOUD.on && localHasEdits() ? `<div class="banner migrate"><span>اطلاعاتی که قبلاً در نسخه‌ی آزمایشی <b>همین مرورگر</b> وارد کرده‌اید پیدا شد (آخرین تغییر: ${new Date(LOCAL.meta.savedAt).toLocaleString('fa-IR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}). می‌خواهید جای اطلاعات فعلی سرور بنشیند؟</span><span class="row"><button class="btn primary sm" type="button" data-migrate>انتقال به نسخه‌ی آنلاین</button><button class="btn sm" type="button" data-migrate-skip>نه، لازم نیست</button></span></div>` : ''}
+    ${CLOUD.on && unsavedCount() ? `<div class="banner bad-banner"><span>${faNum(unsavedCount())} تغییر روی سرور ذخیره نشده است (${esc(CLOUD.error)}). این تغییرها فقط روی همین صفحه دیده می‌شوند.</span><button class="btn primary sm" type="button" data-retry-unsaved>دوباره ذخیره کن</button></div>` : ''}
+    ${CLOUD.readOnly ? `<div class="banner bad-banner"><span>${CLOUD.roReason === 'revoked' ? 'دسترسی به ذخیره‌سازی قطع شد؛ صفحه را دوباره باز کنید. تا آن موقع فقط می‌توانید اطلاعات را ببینید.' : 'این صفحه برای شما فقط قابل مشاهده است؛ تغییرات ذخیره نمی‌شود.'}</span></div>` : ''}
+    ${LOCAL_VIEW && LOCAL ? `<div class="banner bad-banner"><span>این نسخه‌ی قدیمیِ همین مرورگر است (آخرین تغییر: ${LOCAL.meta && LOCAL.meta.savedAt ? new Date(LOCAL.meta.savedAt).toLocaleString('fa-IR') : 'نامشخص'}) و فقط برای مشاهده است؛ تغییرات ذخیره نمی‌شود.</span></div>` : ''}
+    ${CLOUD.on && !CLOUD.bulk && !CLOUD.bulkLeft && !CLOUD.readOnly && localHasEdits() ? `<div class="banner migrate"><span>اطلاعاتی که قبلاً در نسخه‌ی آزمایشی <b>همین مرورگر</b> وارد کرده‌اید پیدا شد (آخرین تغییر: ${new Date(LOCAL.meta.savedAt).toLocaleString('fa-IR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}). می‌خواهید جای اطلاعات فعلی سرور بنشیند؟</span><span class="row"><button class="btn primary sm" type="button" data-migrate>انتقال به نسخه‌ی آنلاین</button><button class="btn sm" type="button" data-migrate-skip>نه، لازم نیست</button></span></div>` : ''}
     ${CLOUD.on || STORAGE_OK ? '' : '<div class="banner">این مرورگر اجازه‌ی ذخیره‌سازی نمی‌دهد؛ تغییرات با بستن صفحه از بین می‌رود. از «تنظیمات ← دریافت خروجی اکسل» پشتیبان بگیرید.</div>'}`);
   if (isDash) renderDashboard(main);
   else if (page === 'settings') renderSettings(main);
@@ -1645,13 +1894,15 @@ document.addEventListener('click', e => {
   if (ds.del !== undefined) { tryDelete(t); return; }
   if (ds.export !== undefined) { exportExcel(); return; }
   if (ds.refresh !== undefined) { refreshAll(false); return; }
+  if (ds.retryUnsaved !== undefined) { retryUnsaved(); toast('در حال ذخیره‌ی دوباره…'); return; }
+  if (ds.bulkResume !== undefined) { resumeBulk(); return; }
+  if (ds.retryLoad !== undefined) { renderLoading('در حال دریافت اطلاعات از سرور…'); SUB_KEYS().filter(k => !CLOUD.got.has(k)).forEach(k => { CLOUD.subTries[k] = 0; sub(k); fetchOnce(k); }); return; }
   if (ds.migrateSkip !== undefined) { setMigrationFlag('dismissed'); render(); return; }
-  if (ds.migrateNow !== undefined) { transferLocal(); return; }
   if (ds.migrate !== undefined) {
     if (!t.classList.contains('armed')) { t.classList.add('armed', 'danger'); t.textContent = 'اطلاعات فعلی سرور جایگزین می‌شود؛ دوباره بزنید'; setTimeout(() => { if (t.isConnected) { t.classList.remove('armed', 'danger'); t.textContent = 'انتقال به نسخه‌ی آنلاین'; } }, 5000); return; }
     transferLocal(); return;
   }
-  if (ds.useLocal !== undefined) { DB = JSON.parse(JSON.stringify(LOCAL.data)); META = LOCAL.meta || {}; render(); return; }
+  if (ds.useLocal !== undefined) { if (!LOCAL) return; for (const k in CLOUD.subs) { try { CLOUD.subs[k](); } catch (er) {} } CLOUD.subs = {}; LOCAL_VIEW = true; DB = JSON.parse(JSON.stringify(LOCAL.data)); for (const k of ENTS) if (!Array.isArray(DB[k])) DB[k] = []; META = LOCAL.meta || {}; CLOUD.ready = true; CLOUD.on = false; render(); return; }
   if (ds.skin) { PREFS.skin = ds.skin; savePrefs(); render(); return; }
   if (ds.reset !== undefined) {
     if (!t.classList.contains('armed')) { t.classList.add('armed'); t.textContent = 'همه‌ی تغییرات پاک می‌شود؛ دوباره بزنید'; setTimeout(() => { if (t.isConnected) { t.classList.remove('armed'); t.textContent = 'بازگشت به داده‌های اولیه'; } }, 4000); return; }
