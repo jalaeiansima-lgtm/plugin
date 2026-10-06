@@ -264,7 +264,7 @@ td:has(>.pay-lines){white-space:normal;min-width:150px}
 .field input[readonly]{opacity:.7}
 .field .hint{font-size:11px;color:var(--ink-3);margin-top:3px;min-height:1em}
 .field.err input,.field.err select{border-color:var(--bad)}
-.field.err .hint{color:var(--bad)}
+.field.err .hint,.field .hint.bad{color:var(--bad)}
 .date-row{display:flex;gap:6px}
 .date-row input{flex:1;min-width:0}
 .modal-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;align-items:center}
@@ -463,15 +463,33 @@ const MONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مر�
 const WEEKDAYS = ['یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه','شنبه'];
 const pad2 = n => String(n).padStart(2, '0');
 const jStr = o => `${o.jy}/${pad2(o.jm)}/${pad2(o.jd)}`;
+/* a typed or pasted Jalali date in pieces: Persian/Arabic digits, any usual separator (/ - . ٫ ، space),
+   stray direction marks dropped; «14050706» works too (phone keypads have no slash) */
+function dateBits(s) {
+  const t = toEn(s).replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\u061C\uFEFF]/g, '').trim();
+  if (/^\d{8}$/.test(t)) return [t.slice(0, 4), t.slice(4, 6), t.slice(6)];
+  if (/^\d{6}$/.test(t)) return [t.slice(0, 4), t.slice(4)];
+  const b = t.split(/\s*[\/\\\-.\u066B\u060C,\u2215\uFF0F\s]+\s*/);
+  if (!b.every(x => /^\d{1,4}$/.test(x))) return null;
+  if (b.length > 1 && b[b.length - 1].length === 4 && b[0].length <= 2) b.reverse();   // 06/07/1405
+  return b[0].length === 4 && b.slice(1).every(x => x.length <= 2) ? b : null;
+}
 function jParse(s) {
-  const m = toEn(s).trim().match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
-  if (!m) return null; const o = { jy: +m[1], jm: +m[2], jd: +m[3] };
+  const b = dateBits(s);
+  if (!b || b.length !== 3) return null; const o = { jy: +b[0], jm: +b[1], jd: +b[2] };
   if (o.jm < 1 || o.jm > 12 || o.jd < 1 || o.jd > 31 || o.jy < 1300 || o.jy > 1500) return null;
   if (o.jm > 6 && o.jd > 30) return null;
   if (o.jm === 12 && o.jd === 30 && jalCal(o.jy, false).leap !== 0) return null;
   return o;
 }
 const normDate = s => { const o = jParse(s); return o ? jStr(o) : null; };
+/* «ماه مربوط»: 1405/07, or a whole date whose month is kept */
+function jMonth(s) {
+  const o = jParse(s); if (o) return `${o.jy}/${pad2(o.jm)}`;
+  const b = dateBits(s); if (!b || b.length !== 2) return null;
+  const y = +b[0], m = +b[1];
+  return m >= 1 && m <= 12 && y >= 1300 && y <= 1500 ? `${y}/${pad2(m)}` : null;
+}
 const jdnOf = s => { const o = jParse(s); return o ? j2d(o.jy, o.jm, o.jd) : null; };
 const fromJdn = d => jStr(d2j(d));
 function todayJdn() { const t = new Date(); return g2d(t.getFullYear(), t.getMonth() + 1, t.getDate()); }
@@ -1001,7 +1019,7 @@ function cleanVal(f, v) {
   switch (f.type) {
     case 'money': case 'int': return parseMoney(v);
     case 'date': return dateFromExcel(v);
-    case 'month': { const s = toEn(v).trim(); const m = s.match(/^(\d{4})[\/\-.](\d{1,2})/); return m ? `${m[1]}/${pad2(m[2])}` : s; }
+    case 'month': { const s = v instanceof Date ? dateFromExcel(v) : toEn(v).trim(); const m = s.match(/^(\d{4})[\/\-.](\d{1,2})/); return jMonth(s) || (m ? `${m[1]}/${pad2(m[2])}` : s); }
     default: return typeof v === 'string' ? v.trim() : String(v);
   }
 }
@@ -1665,8 +1683,8 @@ function fieldHtml(ent, f, rec) {
   switch (f.type) {
     case 'id': ctl = `<input id="${id}" value="${esc(v)}" readonly>`; break;
     case 'money': case 'int': ctl = `<input id="${id}" inputmode="numeric" dir="ltr" value="${v == null ? '' : esc(f.type === 'money' ? Number(v).toLocaleString('en-US') : v)}" data-num="${f.type}">`; break;
-    case 'date': ctl = `<div class="date-row"><input id="${id}" dir="ltr" inputmode="numeric" placeholder="${TODAY}" value="${esc(v || '')}"><button type="button" class="btn sm" data-today="${id}">امروز</button></div>`; break;
-    case 'month': ctl = `<input id="${id}" dir="ltr" inputmode="numeric" placeholder="${TODAY.slice(0, 7)}" value="${esc(v || '')}">`; break;
+    case 'date': ctl = `<div class="date-row"><input id="${id}" dir="ltr" placeholder="${TODAY}" value="${esc(v || '')}" data-dt="date"><button type="button" class="btn sm" data-today="${id}">امروز</button></div>`; break;
+    case 'month': ctl = `<input id="${id}" dir="ltr" placeholder="${TODAY.slice(0, 7)}" value="${esc(v || '')}" data-dt="month">`; break;
     case 'select': ctl = `<select id="${id}">${optionList(f.opts(), v, false)}</select>`; break;
     case 'combo': ctl = `<input id="${id}" list="${id}-dl" value="${esc(v || '')}" autocomplete="off"><datalist id="${id}-dl">${f.opts().map(o => `<option value="${esc(o)}">`).join('')}</datalist>`; break;
     case 'child': ctl = `<select id="${id}"><option value="">انتخاب کودک…</option>${childOpts().map(c => `<option value="${esc(c.id)}"${c.id === v ? ' selected' : ''}>${esc(c.name)} (${esc(c.id)})</option>`).join('')}</select>`; break;
@@ -1715,6 +1733,7 @@ function openForm(ent, id, preset) {
     <div class="modal-actions">${existing ? `<button type="button" class="btn danger" data-del>حذف</button>` : ''}<span class="spacer"></span><button type="button" class="btn ghost" data-close>انصراف</button><button type="submit" class="btn primary">ذخیره</button></div></form>
   </div></div>`;
   for (const f of fields) if (f.type === 'money') updateMoneyHint(`f-${ent}-${f.k}`, f);
+  $$('#m-form [data-dt]').forEach(updateDateHint);
   if (ent === 'payments' || ent === 'installments') updateChildHint(ent);
   const first = $('#m-form input:not([readonly]), #m-form select'); if (first) first.focus();
 }
@@ -1725,6 +1744,15 @@ function closeModal() {
   if (!b || !DB) return;
   if (b.report) openReport();
   else if (b.max && currentPage() === 'dashboard' && TILES_CACHE.some(x => x.id === b.max)) openMax(b.max, b.sel);
+}
+function updateDateHint(el) {
+  const h = document.getElementById(el.id + '-hint'); if (!h) return;
+  const v = el.value.trim(), month = el.dataset.dt === 'month';
+  if (!v) { h.textContent = month ? `مثلاً ${TODAY.slice(0, 7)}؛ تاریخ کامل هم قبول است` : ''; h.classList.remove('bad'); return; }
+  const d = !month && jParse(v), m = month && jMonth(v);
+  if (d) { h.textContent = `${weekday(j2d(d.jy, d.jm, d.jd))} ${jHuman(jStr(d))}`; h.classList.remove('bad'); }
+  else if (m) { h.textContent = `${MONTHS[+m.slice(5) - 1]} ${faDigits(m.slice(0, 4))}`; h.classList.remove('bad'); }
+  else { h.textContent = month ? `ماه را به شکل ${TODAY.slice(0, 7)} یا ${TODAY} بنویسید` : `تاریخ را به شکل ${TODAY} بنویسید`; h.classList.add('bad'); }
 }
 function updateMoneyHint(id, f) {
   const el = document.getElementById(id), h = document.getElementById(id + '-hint'); if (!el || !h) return;
@@ -1745,7 +1773,7 @@ function readForm() {
     let v = el.value.trim();
     if (f.type === 'money' || f.type === 'int') { if (v === '') v = null; else { const n = parseMoney(v); if (n == null) errs.push([f.k, 'یک عدد وارد کنید، مثلاً 20000000 یا ۲۰ میلیون']); else if (n < 0) errs.push([f.k, 'مبلغ نمی‌تواند منفی باشد']); v = n; } }
     else if (f.type === 'date') { if (v === '') v = null; else { const d = normDate(v); if (!d) errs.push([f.k, `تاریخ را به شکل ${TODAY} بنویسید`]); v = d || v; } }
-    else if (f.type === 'month') { if (v === '') v = null; else { const m = toEn(v).match(/^(\d{4})[\/\-.](\d{1,2})$/); if (!m || +m[2] < 1 || +m[2] > 12) errs.push([f.k, `ماه را به شکل ${TODAY.slice(0, 7)} بنویسید`]); else v = `${m[1]}/${pad2(m[2])}`; } }
+    else if (f.type === 'month') { if (v === '') v = null; else { const m = jMonth(v); if (!m) errs.push([f.k, `ماه را به شکل ${TODAY.slice(0, 7)} یا ${TODAY} بنویسید`]); else v = m; } }
     else v = v === '' ? null : v;
     if (f.req && (v == null || v === '') && !errs.some(x => x[0] === f.k)) errs.push([f.k, 'این خانه را پر کنید']);
     out[f.k] = v;
@@ -2249,7 +2277,7 @@ document.addEventListener('click', e => {
   if (ds.clear) { PREFS.filters[ds.clear] = []; savePrefs(); render(); return; }
   if (ds.sort) { const ent = t.closest('.tbl-block').dataset.ent, cur = UI.sort[ent] || DEFAULT_SORT[ent] || {}; UI.sort[ent] = { k: ds.sort, dir: cur.k === ds.sort ? -cur.dir : 1 }; fillTable(ent); return; }
   if (ds.open) { e.preventDefault(); const [ent, id] = ds.open.split(':'); openForm(ent, id); return; }
-  if (ds.today) { const el = document.getElementById(ds.today); if (el) el.value = TODAY; return; }
+  if (ds.today) { const el = document.getElementById(ds.today); if (el) { el.value = TODAY; updateDateHint(el); } return; }
   if (ds.close !== undefined) { closeModal(); return; }
   if (ds.closeBg !== undefined && e.target === t) { closeModal(); return; }
   if (ds.del !== undefined) { tryDelete(t); return; }
@@ -2276,11 +2304,13 @@ document.addEventListener('input', e => {
   const el = e.target;
   if (el.classList.contains('search')) { const ent = el.closest('.tbl-block').dataset.ent; UI.search[ent] = el.value; fillTable(ent); return; }
   if (MODAL && el.dataset.num === 'money') { const f = F(MODAL.ent, el.id.replace(`f-${MODAL.ent}-`, '')); updateMoneyHint(el.id, f); }
+  if (MODAL && el.dataset.dt) updateDateHint(el);
 });
 document.addEventListener('change', async e => {
   const el = e.target;
   if (el.dataset.widget) { PREFS.hidden[el.dataset.widget] = !el.checked; savePrefs(); return; }
   if (MODAL && el.id === `f-${MODAL.ent}-childId`) updateChildHint(MODAL.ent);
+  if (MODAL && el.dataset.dt) { const n = el.dataset.dt === 'month' ? jMonth(el.value) : normDate(el.value); if (n && n !== el.value) el.value = n; updateDateHint(el); }
 });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
