@@ -204,7 +204,30 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 .modal-bg{position:fixed;inset:0;background:rgba(6,2,16,.66);backdrop-filter:blur(3px);display:grid;place-items:center;padding:16px;z-index:40}
 .modal{direction:rtl;background:var(--panel-solid);color:var(--ink);border:1px solid var(--line-strong);border-radius:16px;width:min(780px,100%);max-height:calc(100% - 32px);overflow:auto;padding:20px 22px;box-shadow:0 0 40px rgba(170,70,255,.35),0 20px 60px rgba(0,0,0,.5)}
 .modal.max{width:min(1180px,100%);height:min(760px,calc(100% - 32px));display:flex;flex-direction:column}
-.modal.max .tile{flex:1;box-shadow:none;border:0;background:transparent;padding:0}
+.modal.max .tile{flex:0 0 44%;min-height:200px;box-shadow:none;border:0;background:transparent;padding:0}
+.modal.max{height:min(900px,calc(100% - 32px))}
+.modal.max .detail{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.modal.max .detail .tbl-scroll{flex:1;min-height:0;max-height:none}
+.detail-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;font-size:13px}
+.detail-head .spacer{margin-inline-end:auto}
+.detail-head .chip{background:color-mix(in srgb,var(--c1) 22%,var(--panel-solid));color:#fff}
+.board .tile .body{cursor:zoom-in}
+.btn.report-btn{border-color:var(--c2);color:#fff;background:color-mix(in srgb,var(--c2) 18%,var(--panel));box-shadow:0 0 14px color-mix(in srgb,var(--c2) 40%,transparent);font-weight:700}
+.modal.report{width:min(1100px,100%)}
+.rp-tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 14px}
+.rp-tabs .opt{width:auto;margin:0;padding:4px 14px}
+.rp-label{margin-inline-start:8px;font-size:12.5px}
+.rp-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:6px}
+.rp-cards div{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.rp-cards span{display:block;font-size:12px;color:var(--ink-3)}
+.rp-cards b{display:block;font-size:22px;font-weight:800;color:#fff;text-shadow:0 0 12px color-mix(in srgb,var(--k) 70%,transparent);font-variant-numeric:tabular-nums}
+.rp-cards small{font-size:11.5px;color:var(--ink-2)}
+.rp-sec{margin-top:16px}
+.rp-sec h3{font-size:14px;margin:0 0 8px;display:flex;gap:8px;align-items:baseline}
+.rp-sec h3 small{font-weight:400;color:var(--ink-3);font-size:12px}
+.rp-sec .tbl-scroll{max-height:320px}
+.rp-note{font-size:12px;margin:6px 0 0}
+@media (max-width:700px){.rp-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .modal.max .tile h3{font-size:18px}
 .modal.max .lg{font-size:14px;gap:10px;flex:0 0 auto;max-width:44%;margin-inline-end:auto;justify-content:center}
 .modal.max .lg li{grid-template-columns:12px auto auto auto;justify-content:start;column-gap:14px}
@@ -1525,7 +1548,12 @@ function tileHtml(d, prefix, inModal) {
 }
 function drawTiles(defs, prefix) {
   if (!setChartDefaults()) return;
-  for (const d of defs) if (d.cfg && !d.empty && d.kind !== 'html') mk(prefix + d.id, d.cfg());
+  for (const d of defs) if (d.cfg && !d.empty && d.kind !== 'html') {
+    const cfg = d.cfg();
+    cfg.options.onClick = chartClick(d.id, prefix);
+    cfg.options.onHover = (evt, els, chart) => { chart.canvas.style.cursor = els && els.length ? 'pointer' : (prefix === 'ch-' ? 'zoom-in' : 'default'); };
+    mk(prefix + d.id, cfg);
+  }
 }
 function kpiHtml(M, C) {
   const u = s => s.replace(/ (میلیون|میلیارد|هزار)$/, '<small>$1</small>');
@@ -1554,7 +1582,7 @@ const boardSig = m => `${m.clientWidth}:${fitBoard()}`;
 const cssCols = () => innerWidth <= 620 ? 1 : innerWidth < 1100 ? 2 : 4;
 function renderDashboard(main) {
   const t = tok(), M = dashModel();
-  RING_N = 0;
+  RING_N = 0; LAST_M = M;
   const defs = buildTiles(M, t).filter(d => shown(d.id) && !(PRESENT && d.empty));
   TILES_CACHE = defs;
   main.classList.add('fit');
@@ -1571,12 +1599,14 @@ function renderDashboard(main) {
   drawTiles(defs, 'ch-');
   return M;
 }
-function openMax(id) {
+function openMax(id, sel) {
   const d = TILES_CACHE.find(x => x.id === id); if (!d) return;
-  destroyCharts('mx-');
+  destroyCharts('mx-'); MAX_SEL = sel || null;
   $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal max" role="dialog" aria-modal="true" aria-label="${esc(d.t)}" data-max-id="${esc(d.id)}"><button type="button" class="close-x" data-close aria-label="بستن" title="بستن (Esc)">✕</button>${tileHtml(d, 'mx-', true)}
+    <div class="detail" id="mx-detail"></div>
     <div class="modal-actions"><span class="spacer"></span><button type="button" class="btn" data-close>بستن</button></div></div></div>`;
   drawTiles([d], 'mx-');
+  renderDetail(id);
   const btn = $('#modal-root [data-close]'); if (btn) btn.focus();
 }
 
@@ -1757,6 +1787,10 @@ function tryDelete(btn) {
     if (!DB[ent].some(r => r.id === removed.id)) DB[ent].splice(Math.min(i, DB[ent].length), 0, removed); persistRec(ent, removed); render();
   });
 }
+function refreshOpenWindow() {
+  if ($('.modal.report')) openReport();
+  else { const m = $('.modal.max'); if (m) renderDetail(m.dataset.maxId); }
+}
 async function restoreDeleted(ent, rec) {
   const r = { ...rec }, oldId = r.id;
   delete r._w;
@@ -1772,7 +1806,7 @@ function collect(id) {
   const it = DB.installments.find(i => i.id === id); if (!it) return;
   const before = { status: it.status, doneDate: it.doneDate };
   it.status = same(it.type, 'چک') ? 'وصول‌شده' : 'پرداخت‌شده'; it.doneDate = TODAY;
-  persistRec('installments', it); render();
+  persistRec('installments', it); render(); refreshOpenWindow();
   toast(`${it.type || 'قسط'} ${childById(it.childId)?.name || ''} به «${it.status}» تغییر کرد.`, () => { if (CLOUD.on && editBlocked()) return; Object.assign(it, before); persistRec('installments', it); render(); });
 }
 
@@ -1783,6 +1817,194 @@ function toast(msg, undo) {
   root.innerHTML = `<div class="toast" role="status"><span>${esc(msg)}</span>${undo ? '<button type="button" data-undo>بازگردانی</button>' : ''}</div>`;
   if (undo) $('[data-undo]', root).onclick = () => { undo(); root.innerHTML = ''; };
   toastTimer = setTimeout(() => { root.innerHTML = ''; }, undo ? 7000 : 3800);
+}
+
+/* ================= drill-down details & daily report =================
+   Clicking a tile opens it large with the records behind it; clicking a bar or slice narrows the list.
+   «گزارش روزانه» lists the day's receipts, payments (salaries, expenses) and due cheques in one window. */
+let LAST_M = null, MAX_SEL = null;
+function receiptRows(S) {
+  return [
+    ...S.payments.map(p => ({ src: 'payments', id: p.id, date: p.date, childId: p.childId, category: p.category || 'سایر', label: [p.category, p.for].filter(Boolean).join(' · '), method: p.method || 'نامشخص', amount: +p.amount || 0 })),
+    ...S.installments.filter(i => isDone(i.status)).map(i => ({ src: 'installments', id: i.id, date: i.doneDate, childId: i.childId, category: 'شهریه', label: `${i.type || 'قسط'} وصول‌شده`, method: same(i.type, 'چک') ? 'چک' : 'نامشخص', amount: +i.amount || 0 })),
+  ];
+}
+function costRows() {
+  return [
+    ...DB.salaries.map(s => ({ src: 'salaries', id: s.id, date: s.date, month: s.month || (normDate(s.date) || '').slice(0, 7), kind: 'حقوق', label: `حقوق ${staffById(s.staffId)?.name || s.staffId || ''}`, method: s.method || '', amount: +s.amount || 0 })),
+    ...DB.expenses.map(x => ({ src: 'expenses', id: x.id, date: x.date, month: (normDate(x.date) || '').slice(0, 7), kind: 'خرید و هزینه', label: [x.desc, x.category].filter(Boolean).join(' · '), method: x.payer || '', amount: +x.amount || 0 })),
+  ];
+}
+const byDateDesc = (a, b) => (jdnOf(b.date) ?? -1) - (jdnOf(a.date) ?? -1);
+const dateCell = d => d ? esc(faDigits(normDate(d) || d)) : '<span class="muted">بدون تاریخ</span>';
+const DCOL = {
+  receipt: [
+    { l: 'تاریخ', v: r => dateCell(r.date) },
+    { l: 'کودک', v: r => `<span class="name">${esc(childById(r.childId)?.name || r.childId || '—')}</span>` },
+    { l: 'بابت', v: r => esc(r.label || '') },
+    { l: 'روش', v: r => esc(r.method || '') },
+    { l: 'مبلغ (تومان)', v: r => full(r.amount), num: true, sum: r => r.amount },
+  ],
+  cost: [
+    { l: 'تاریخ', v: r => r.date ? dateCell(r.date) : esc(faDigits(r.month || '')) },
+    { l: 'شرح', v: r => esc(r.label || '') },
+    { l: 'نوع', v: r => esc(r.kind || '') },
+    { l: 'روش / پرداخت‌کننده', v: r => esc(r.method || '') },
+    { l: 'مبلغ (تومان)', v: r => full(r.amount), num: true, sum: r => r.amount },
+  ],
+  child: [
+    { l: 'نام', v: c => `<span class="name">${esc(c.name)}</span>` },
+    { l: 'کلاس', v: c => esc(clsOf(c)) },
+    { l: 'گروه / حضور', v: c => `${esc(c.group || '')} · ${esc(c.attendance || '')}` },
+    { l: 'تعهد', v: c => full(fin(c.id).expected), num: true, sum: c => fin(c.id).expected },
+    { l: 'دریافت‌شده', v: c => full(fin(c.id).received), num: true, sum: c => fin(c.id).received },
+    { l: 'چک و قسط', v: c => full(fin(c.id).scheduled), num: true, sum: c => fin(c.id).scheduled },
+    { l: 'مانده', v: c => full(fin(c.id).remaining), num: true, sum: c => fin(c.id).remaining },
+    { l: 'بیمه', v: c => statusPill('children', 'insurance', c.insurance) },
+    { l: 'چک‌ها', v: c => `<span class="muted">${esc(c.checkStatus || '—')}</span>` },
+  ],
+  inst: [
+    { l: 'کودک', v: i => `<span class="name">${esc(childById(i.childId)?.name || i.childId || '—')}</span>` },
+    { l: 'نوع', v: i => esc(i.type || '') },
+    { l: 'سررسید', v: i => i.due ? esc(jHuman(i.due)) : '<span class="muted">بدون تاریخ</span>' },
+    { l: 'زمان', v: i => isPending(i.status) ? daysPill(i.due) : '<span class="muted">—</span>' },
+    { l: 'وضعیت', v: i => statusPill('installments', 'status', i.status) },
+    { l: 'مبلغ (تومان)', v: i => i.amount == null ? '<span class="muted">نامشخص</span>' : full(i.amount), num: true, sum: i => i.amount },
+    { l: '', v: i => isPending(i.status) ? `<button class="btn sm" type="button" data-collect="${esc(i.id)}">${same(i.type, 'چک') ? 'ثبت وصول' : 'ثبت پرداخت'}</button>` : '' },
+  ],
+  staff: [
+    { l: 'نام', v: s => `<span class="name">${esc(s.name)}</span>` },
+    { l: 'سمت', v: s => esc(s.role || '') },
+    { l: 'حقوق پایه', v: s => full(s.salary), num: true, sum: s => s.salary },
+    { l: 'وضعیت', v: s => statusPill('staff', 'status', s.status) },
+  ],
+  tariff: [
+    { l: 'گروه سنی', v: t => esc(t.group || '') }, { l: 'نوع حضور', v: t => esc(t.attendance || '') },
+    { l: 'نقدی', v: t => full(t.cash), num: true }, { l: 'چک اول', v: t => full(t.check1), num: true }, { l: 'چک دوم', v: t => full(t.check2), num: true },
+    { l: 'جمع تعهد', v: t => full(tariffTotal(t)), num: true },
+  ],
+  event: [
+    { l: 'رویداد', v: e => `<span class="name">${esc(e.title)}</span>` }, { l: 'تاریخ', v: e => e.date ? esc(jHuman(e.date)) : '<span class="muted">بدون تاریخ</span>' },
+    { l: 'وضعیت', v: e => eventPill(e.status) }, { l: 'بودجه', v: e => full(e.budget), num: true }, { l: 'اقدام بعدی', v: e => `<span class="muted">${esc(e.next || '')}</span>` },
+  ],
+};
+const OPEN = { receipt: r => `${r.src}:${r.id}`, cost: r => `${r.src}:${r.id}`, child: c => `children:${c.id}`, inst: i => `installments:${i.id}`, staff: s => `staff:${s.id}`, tariff: t => `tariffs:${t.id}`, event: e => `events:${e.id}` };
+const byRemaining = (a, b) => fin(b.id).remaining - fin(a.id).remaining;
+function tileDetail(id, M, sel) {
+  const S = M.S, kids = M.active.slice();
+  const pend = M.pend.filter(i => jdnOf(i.due) != null).sort((a, b) => jdnOf(a.due) - jdnOf(b.due));
+  switch (id) {
+    case 'trend': {
+      const lo = M.days[0], hi = M.days[M.days.length - 1];
+      let rows = receiptRows(S).filter(r => { const d = jdnOf(r.date); return d != null && d >= lo && d <= hi; });
+      if (sel) rows = rows.filter(r => jdnOf(r.date) === sel.day);
+      return { kind: 'receipt', title: 'دریافت‌های ۳۰ روز اخیر', rows: rows.sort(byDateDesc) };
+    }
+    case 'category': { let rows = receiptRows(S); if (sel) rows = rows.filter(r => sel.cat === 'سایر' ? !PAY_CATS.slice(0, -1).some(c => same(c, r.category)) : same(r.category, sel.cat)); return { kind: 'receipt', title: 'همه‌ی دریافت‌ها', rows: rows.sort(byDateDesc) }; }
+    case 'method': { let rows = receiptRows(S); if (sel) rows = rows.filter(r => same(r.method, sel.method)); return { kind: 'receipt', title: 'همه‌ی دریافت‌ها', rows: rows.sort(byDateDesc) }; }
+    case 'rings': return { kind: 'child', title: 'کودکان فعال · بیشترین مانده اول', rows: kids.sort(byRemaining) };
+    case 'classes': { let rows = kids; if (sel) rows = rows.filter(c => same(clsOf(c), sel.cls)); return { kind: 'child', title: 'کودکان فعال', rows: rows.sort((a, b) => String(clsOf(a)).localeCompare(String(clsOf(b)), 'fa') || String(a.name).localeCompare(String(b.name), 'fa')) }; }
+    case 'ageAtt': { let rows = kids; if (sel) rows = rows.filter(c => same(c.group, sel.group) && (!sel.att || same(c.attendance, sel.att))); return { kind: 'child', title: 'کودکان فعال', rows: rows.sort(byRemaining) }; }
+    case 'services': {
+      const tests = [c => same(c.swim, 'دارد'), c => same(c.meal, 'دارد'), c => same(c.insurance, 'دریافت شد')];
+      const rows = sel ? kids.filter(tests[sel.i]) : kids.filter(c => tests.some(f => f(c)));
+      return { kind: 'child', title: 'کودکان دارای خدمات جانبی', rows: rows.sort((a, b) => String(a.name).localeCompare(String(b.name), 'fa')) };
+    }
+    case 'tuition': {
+      let rows = kids.filter(c => fin(c.id).expected > 0);
+      if (sel) rows = rows.filter(c => sel.part === 0 ? fin(c.id).received > 0 : sel.part === 1 ? fin(c.id).scheduled > 0 : fin(c.id).unscheduled > 0);
+      return { kind: 'child', title: 'شهریه‌ی کودکان فعال · بیشترین مانده اول', rows: rows.sort(byRemaining) };
+    }
+    case 'staff': { let rows = M.staffActive.slice(); if (sel) rows = rows.filter(s => same(s.role, sel.role)); return { kind: 'staff', title: 'پرسنل فعال', rows }; }
+    case 'dues': { let rows = pend; if (sel) rows = rows.filter(i => normDate(i.due).slice(0, 7) === sel.month && (sel.cheque == null || same(i.type, 'چک') === sel.cheque)); return { kind: 'inst', title: 'چک‌ها و اقساط در انتظار · نزدیک‌ترین سررسید اول', rows }; }
+    case 'tariffs': return { kind: 'tariff', title: 'تعرفه‌ها', rows: sel ? [DB.tariffs[sel.i]].filter(Boolean) : DB.tariffs.slice() };
+    case 'costs': { let rows = costRows().filter(r => M.costMonths.includes(r.month)); if (sel) rows = rows.filter(r => r.month === sel.month && (!sel.kind || r.kind === sel.kind)); return { kind: 'cost', title: 'حقوق و هزینه‌های ۶ ماه اخیر', rows: rows.sort(byDateDesc) }; }
+    case 'events': return { kind: 'event', title: 'رویدادها', rows: DB.events.slice().sort((a, b) => (jdnOf(a.date) ?? 1e9) - (jdnOf(b.date) ?? 1e9)) };
+  }
+  return null;
+}
+/* what a click on bar/slice #index (dataset #ds) of a tile's chart selects */
+function tilePick(id, M, index, ds) {
+  const catItems = PAY_CATS.map((l, i) => ({ l, v: M.catVals[i] })).filter(x => x.v > 0);
+  const methItems = M.methods.map((l, i) => ({ l, v: M.methVals[i] })).filter(x => x.v > 0);
+  switch (id) {
+    case 'trend': { const day = M.days[index]; return day == null ? null : { day, label: `${weekday(day)} ${jHuman(fromJdn(day))}` }; }
+    case 'category': { const x = catItems[index]; return x ? { cat: x.l, label: x.l } : null; }
+    case 'method': { const x = methItems[index]; return x ? { method: x.l, label: x.l } : null; }
+    case 'classes': { const x = M.classes[index]; return x ? { cls: x.cl, label: `کلاس ${x.cl}` } : null; }
+    case 'ageAtt': { const g = M.groups[index], a = M.atts[ds]; return g ? { group: g, att: a, label: `${g}${a ? ' · ' + a : ''}` } : null; }
+    case 'services': return index >= 0 && index < 3 ? { i: index, label: ['شنا', 'صبحانه و چاشت', 'بیمه‌ی پرداخت‌شده'][index] } : null;
+    case 'tuition': return index >= 0 && index < 3 ? { part: index, label: ['دریافت‌شده', 'چک و قسط در جریان', 'بدون برنامه‌ی پرداخت'][index] } : null;
+    case 'staff': { const r = M.roles[index]; return r ? { role: r, label: r } : null; }
+    case 'dues': { const m = M.months[index]; return m ? { month: m, cheque: ds === 0 ? true : ds === 1 ? false : null, label: `${monthLabels([m])[0]}${ds === 0 ? ' · چک' : ds === 1 ? ' · قسط نقدی' : ''}` } : null; }
+    case 'tariffs': { const t = DB.tariffs[index]; return t ? { i: index, label: `${t.group || ''} · ${t.attendance || ''}` } : null; }
+    case 'costs': { const m = M.costMonths[index]; return m ? { month: m, kind: ds === 0 ? 'حقوق' : ds === 1 ? 'خرید و هزینه' : null, label: monthLabels([m])[0] } : null; }
+  }
+  return null;
+}
+function tableHtml(kind, rows, emptyText) {
+  const cols = DCOL[kind], open = OPEN[kind];
+  return `<div class="tbl-scroll"><table><thead><tr>${cols.map(c => `<th scope="col">${esc(c.l)}</th>`).join('')}</tr></thead><tbody>${rows.length
+    ? rows.map(r => `<tr data-open="${esc(open(r))}">${cols.map(c => `<td class="${c.num ? 'num' : ''}">${c.v(r)}</td>`).join('')}</tr>`).join('')
+    : `<tr class="empty-row"><td colspan="${cols.length}">${esc(emptyText || 'موردی نیست.')}</td></tr>`}</tbody></table></div>`;
+}
+function totalOf(kind, rows) { const c = DCOL[kind].find(x => x.sum); return c ? sum(rows, c.sum) : null; }
+function renderDetail(id) {
+  const box = document.getElementById('mx-detail'); if (!box || !LAST_M) return;
+  const D = tileDetail(id, LAST_M, MAX_SEL); if (!D) { box.innerHTML = ''; return; }
+  const total = totalOf(D.kind, D.rows), hasChart = !!(TILES_CACHE.find(x => x.id === id) || {}).cfg;
+  box.innerHTML = `<div class="detail-head"><b>${esc(D.title)}</b>
+      ${MAX_SEL ? `<span class="chip">فقط: ${esc(MAX_SEL.label)} <button type="button" data-detail-clear aria-label="نمایش همه">✕</button></span>` : hasChart ? '<span class="muted">برای دیدن جزئیات هر بخش، روی میله یا قطعه‌ی نمودار بزنید.</span>' : ''}
+      <span class="spacer"></span><span class="num">${faNum(D.rows.length)} مورد${total != null ? ` · جمع ${full(total)} تومان` : ''}</span></div>
+    ${tableHtml(D.kind, D.rows)}`;
+}
+function chartClick(id, prefix) {
+  return (evt, els) => {
+    const el = els && els[0];
+    const sel = el && LAST_M ? tilePick(id, LAST_M, el.index, el.datasetIndex) : null;
+    if (prefix === 'ch-') { openMax(id, sel); return; }
+    MAX_SEL = sel; renderDetail(id);
+  };
+}
+/* ---------- daily report ---------- */
+let REPORT_P = 'today';
+function periodRange(p) {
+  const t = TODAY_JDN;
+  if (p === 'yesterday') return { lo: t - 1, hi: t - 1, label: `دیروز، ${weekday(t - 1)} ${jHuman(fromJdn(t - 1))}` };
+  if (p === 'week') return { lo: t - 6, hi: t, label: `۷ روز اخیر، ${jHuman(fromJdn(t - 6), false)} تا ${jHuman(TODAY, false)}` };
+  if (p === 'month') { const j = d2j(t), lo = j2d(j.jy, j.jm, 1); return { lo, hi: t, label: `${MONTHS[j.jm - 1]} ${faDigits(j.jy)} تا امروز` }; }
+  return { lo: t, hi: t, label: `امروز، ${weekday(t)} ${jHuman(TODAY)}` };
+}
+function openReport(p) {
+  if (p) REPORT_P = p;
+  syncToday(); computeFin();
+  const S = scope(), R = periodRange(REPORT_P), inR = d => { const j = jdnOf(d); return j != null && j >= R.lo && j <= R.hi; };
+  const activeIds = new Set(S.kids.filter(isActive).map(c => c.id));
+  const allRec = receiptRows(S), rec = allRec.filter(r => inR(r.date)).sort(byDateDesc);
+  const out = costRows().filter(r => inR(r.date)).sort(byDateDesc);
+  const pend = S.installments.filter(i => isPending(i.status) && (!i.childId || activeIds.has(i.childId) || !childById(i.childId)) && jdnOf(i.due) != null).sort((a, b) => jdnOf(a.due) - jdnOf(b.due));
+  const overdue = pend.filter(i => jdnOf(i.due) < TODAY_JDN), soon = pend.filter(i => { const d = jdnOf(i.due); return d >= TODAY_JDN && d <= Math.max(R.hi, TODAY_JDN + 7); });
+  const inSum = sum(rec, r => r.amount), outSum = sum(out, r => r.amount);
+  const tuitionIn = sum(rec.filter(r => same(r.category, 'شهریه')), r => r.amount);
+  const undated = allRec.filter(r => jdnOf(r.date) == null).length;
+  const tabs = [['today', 'امروز'], ['yesterday', 'دیروز'], ['week', '۷ روز اخیر'], ['month', 'این ماه']];
+  destroyCharts('mx-'); MAX_SEL = null;
+  $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal report" role="dialog" aria-modal="true" aria-labelledby="rp-title">
+    <button type="button" class="close-x" data-close aria-label="بستن" title="بستن (Esc)">✕</button>
+    <h2 id="rp-title">گزارش دریافت‌ها و پرداخت‌ها</h2>
+    <div class="rp-tabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" class="opt" role="tab" data-rp="${k}" aria-pressed="${REPORT_P === k}">${l}</button>`).join('')}<span class="muted rp-label">${esc(R.label)}</span></div>
+    <div class="rp-cards">
+      <div style="--k:var(--c1)"><span>دریافت‌ها</span><b>${money(inSum)}</b><small>${faNum(rec.length)} مورد · شهریه ${money(tuitionIn)}</small></div>
+      <div style="--k:var(--c3)"><span>پرداخت‌ها (حقوق و هزینه)</span><b>${money(outSum)}</b><small>${faNum(out.length)} مورد</small></div>
+      <div style="--k:var(--c2)"><span>خالص</span><b>${inSum - outSum < 0 ? '−' : ''}${money(Math.abs(inSum - outSum))}</b><small>دریافت منهای پرداخت</small></div>
+      <div style="--k:${overdue.length ? 'var(--bad)' : 'var(--c5)'}"><span>سررسیدهای عقب‌افتاده</span><b>${faNum(overdue.length)}</b><small>${overdue.length ? money(sum(overdue, i => i.amount)) + ' تومان' : 'ندارد'}</small></div>
+    </div>
+    <section class="rp-sec"><h3>دریافت‌ها <small>${faNum(rec.length)} مورد · ${full(inSum)} تومان</small></h3>${tableHtml('receipt', rec, 'در این بازه دریافتی ثبت نشده است.')}
+      ${undated ? `<p class="muted rp-note">${faNum(undated)} دریافت بدون تاریخ در گزارش‌های تاریخ‌دار نمی‌آید؛ برای دیدنشان صفحه‌ی «دریافت‌ها» را باز کنید.</p>` : ''}</section>
+    <section class="rp-sec"><h3>پرداخت‌ها <small>${faNum(out.length)} مورد · ${full(outSum)} تومان</small></h3>${tableHtml('cost', out, 'در این بازه حقوق یا هزینه‌ای ثبت نشده است.')}</section>
+    <section class="rp-sec"><h3>چک‌ها و اقساط <small>عقب‌افتاده و سررسید ${REPORT_P === 'today' || REPORT_P === 'yesterday' ? '۷ روز آینده' : 'تا پایان بازه و ۷ روز آینده'}</small></h3>${tableHtml('inst', [...overdue, ...soon], 'سررسید نزدیکی نیست.')}</section>
+    <div class="modal-actions"><button type="button" class="btn" data-add="payments">+ ثبت دریافت</button><button type="button" class="btn" data-add="expenses">+ ثبت هزینه</button><button type="button" class="btn" data-add="salaries">+ ثبت حقوق</button><span class="spacer"></span><button type="button" class="btn" data-close>بستن</button></div>
+  </div></div>`;
 }
 
 /* ================= pages ================= */
@@ -1886,6 +2108,7 @@ function render() {
     metaChips = `<div class="meta"><span class="chip">${esc(weekday(TODAY_JDN))} ${jHuman(TODAY)}</span>${nx ? `<a class="chip" href="#events" style="text-decoration:none">${nx.dated ? `رویداد بعدی: ${esc(nx.e.title)} · ${jHuman(nx.e.date, false)}` : `در انتظار برنامه‌ریزی: ${esc(nx.e.title)}`}</a>` : ''}${fchips.join('')}</div>`;
   }
   main.insertAdjacentHTML('beforeend', `<div class="topbar"><h1>${isDash ? 'نمای کلی مهد' : esc(meta.l)}</h1>${metaChips}<div class="actions">
+      <button class="btn report-btn" type="button" data-report title="دریافت‌ها، پرداخت‌ها و سررسیدهای امروز">📋 گزارش روزانه</button>
       <button class="btn primary edit-act" type="button" data-add="payments">+ دریافت جدید</button>
       <button class="btn edit-act" type="button" data-add="installments">+ چک یا قسط</button>
       <button class="btn edit-act" type="button" data-add="children">+ کودک جدید</button>
@@ -1912,12 +2135,17 @@ function togglePresent() {
 
 /* ================= events ================= */
 document.addEventListener('click', e => {
+  const tileHit = e.target.closest('.board .tile[data-tile]');
+  if (tileHit && !e.target.closest('button, a, canvas, [data-open]')) { openMax(tileHit.dataset.tile); return; }
   const t = e.target.closest('button, th[data-sort], [data-open], label, a, .modal-bg'); if (!t) return;
   const ds = t.dataset;
   if (ds.collect) { e.stopPropagation(); collect(ds.collect); return; }
   if (ds.add) { openForm(ds.add, null); return; }
   if (ds.addFor) { const [ent, cid] = ds.addFor.split(':'); openForm(ent, null, { childId: cid }); return; }
   if (ds.max) { openMax(ds.max); return; }
+  if (ds.report !== undefined) { openReport('today'); return; }
+  if (ds.rp) { openReport(ds.rp); return; }
+  if (ds.detailClear !== undefined) { MAX_SEL = null; const m = $('.modal.max'); if (m) renderDetail(m.dataset.maxId); return; }
   if (ds.present !== undefined) { togglePresent(); return; }
   if (ds.slice) { const sel = PREFS.filters[ds.slice] = PREFS.filters[ds.slice] || []; const i = sel.findIndex(v => same(v, ds.v)); if (i >= 0) sel.splice(i, 1); else sel.push(ds.v); savePrefs(); render(); return; }
   if (ds.unslice) { PREFS.filters[ds.unslice] = (PREFS.filters[ds.unslice] || []).filter(v => !same(v, ds.v)); savePrefs(); render(); return; }
