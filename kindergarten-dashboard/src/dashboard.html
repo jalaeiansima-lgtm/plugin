@@ -686,7 +686,7 @@ function persistRec(ent, rec) { if (LOCAL_VIEW) return; if (!CLOUD.on) { save();
 function persistDel(ent, id) { if (LOCAL_VIEW) return; if (!CLOUD.on) { save(); return; } writeRecord(ent, docKey(id), null); }
 /* form saves wait for the server; a new record takes a code no other device holds */
 function bumpCode(ent, id) { const n = (parseInt(String(id).replace(/\D/g, ''), 10) || 0) + 1; return SCHEMA[ent].prefix + String(n).padStart(SCHEMA[ent].pad, '0'); }
-async function saveRecordNow(ent, rec, isNew) {
+async function saveRecordNow(ent, rec, isNew, changed) {
   if (isNew) {
     const lock = CLOUD.db.doc(`locks/${ent}`);
     if (typeof lock.acquire === 'function') {
@@ -700,10 +700,24 @@ async function saveRecordNow(ent, rec, isNew) {
     for (let i = 0; ; i++) {
       const path = `${ent}/${docKey(rec.id)}`;
       const sn = await withRetry(() => CLOUD.db.doc(path).get());
-      if (!sn.exists && !CLOUD.local.has(path)) break;
+      const pend = CLOUD.local.get(path);
+      if (!sn.exists && (!pend || pend.body === null)) break; // a pending delete of this code frees it
       if (i >= 300) throw { code: 'busy' };
       rec.id = bumpCode(ent, rec.id);
     }
+  }
+  if (!isNew && changed) { // edit: merge the changed fields into the server's latest copy so other devices' edits survive
+    const path = `${ent}/${docKey(rec.id)}`;
+    let merged = null, recreated = false;
+    await enqueue(path, async () => {
+      const sn = await CLOUD.db.doc(path).get();
+      const base = sn.exists ? sn.data() : rec; recreated = !sn.exists;
+      merged = plain({ ...base, ...changed, id: rec.id });
+      await CLOUD.db.doc(path).set(merged);
+    });
+    CLOUD.local.delete(path);
+    Object.keys(rec).forEach(k => delete rec[k]); Object.assign(rec, merged);
+    return { recreated };
   }
   for (let attempt = 0; ; attempt++) {
     const path = `${ent}/${docKey(rec.id)}`, body = plain(rec), mark = `${TAB_ID}-${Date.now()}-${attempt}`;
@@ -1702,10 +1716,14 @@ async function submitForm() {
   const out = readForm(); if (!out) { toast('چند خانه نیاز به اصلاح دارند.'); return; }
   const { ent, id } = MODAL, mine = MODAL;
   if (!id && DB[ent].some(r => r.id === out.id)) out.id = nextId(ent);
+  const changed = {};
+  if (id) for (const f of SCHEMA[ent].fields) if (f.k !== 'id' && JSON.stringify(out[f.k] ?? null) !== JSON.stringify(mine.rec[f.k] ?? null)) changed[f.k] = out[f.k] ?? null;
+  if (id && !Object.keys(changed).length) { closeModal(); toast('تغییری ثبت نشد؛ چیزی عوض نشده بود.'); return; }
+  let info = {};
   if (CLOUD.on) { // the form closes only once the server has the record
     SUBMITTING = true;
     const btn = $('#m-form button[type=submit]'); if (btn) { btn.disabled = true; btn.textContent = 'در حال ذخیره روی سرور…'; }
-    try { await saveRecordNow(ent, out, !id); }
+    try { info = (await saveRecordNow(ent, out, !id, id ? changed : null)) || {}; }
     catch (e) {
       SUBMITTING = false;
       if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = 'ذخیره'; }
@@ -1719,7 +1737,7 @@ async function submitForm() {
   else if (!list.some(r => r.id === out.id)) list.push(out);
   if (MODAL === mine) closeModal();
   if (CLOUD.on) touchMeta(); else save();
-  render(); toast(`${SCHEMA[ent].one} ${id ? 'به‌روز شد' : 'ثبت شد'}.`);
+  render(); toast(info.recreated ? `این ${SCHEMA[ent].one} روی دستگاه دیگری حذف شده بود؛ با تغییرات شما دوباره ثبت شد.` : `${SCHEMA[ent].one} ${id ? 'به‌روز شد' : 'ثبت شد'}${!id && out.id !== mine.rec.id ? ` (کد ${out.id})` : ''}.`);
 }
 function tryDelete(btn) {
   if (CLOUD.on && editBlocked()) return;
@@ -1733,7 +1751,20 @@ function tryDelete(btn) {
   const i = DB[ent].findIndex(r => r.id === id), removed = DB[ent][i];
   if (i < 0) { closeModal(); toast('این مورد روی دستگاه دیگری حذف شده است.'); render(); return; }
   DB[ent].splice(i, 1); closeModal(); persistDel(ent, id); render();
-  toast(`${SCHEMA[ent].one} حذف شد.`, () => { if (!removed || (CLOUD.on && editBlocked())) return; if (!DB[ent].some(r => r.id === removed.id)) DB[ent].splice(Math.min(i, DB[ent].length), 0, removed); persistRec(ent, removed); render(); });
+  toast(`${SCHEMA[ent].one} حذف شد.`, () => {
+    if (!removed || (CLOUD.on && editBlocked())) return;
+    if (CLOUD.on) { restoreDeleted(ent, removed); return; }
+    if (!DB[ent].some(r => r.id === removed.id)) DB[ent].splice(Math.min(i, DB[ent].length), 0, removed); persistRec(ent, removed); render();
+  });
+}
+async function restoreDeleted(ent, rec) {
+  const r = { ...rec }, oldId = r.id;
+  delete r._w;
+  try { await saveRecordNow(ent, r, true); }
+  catch (e) { toast(`بازگردانی انجام نشد: ${cloudErrText(e, 'record')}`); return; }
+  if (!DB[ent].some(x => x.id === r.id)) { DB[ent].push(r); natSort(DB[ent]); }
+  touchMeta(); render();
+  toast(r.id === oldId ? `${SCHEMA[ent].one} بازگردانی شد.` : `${SCHEMA[ent].one} با کد ${r.id} بازگردانی شد؛ کد قبلی را مورد دیگری گرفته بود.`);
 }
 function collect(id) {
   if (CLOUD.on && editBlocked()) return;
@@ -1792,6 +1823,10 @@ const SKINS = [
   { id: 'navy', l: 'نئون سرمه‌ای', sw: ['#060b2c', '#6a7dff', '#ff5ac8'] },
   { id: 'midnight', l: 'نئون شب', sw: ['#050309', '#c06bff', '#25d6f2'] },
 ];
+function bindReimport() {
+  const inp = document.getElementById('reimport');
+  if (inp && !inp.dataset.bound) { inp.dataset.bound = '1'; inp.addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (f && await importFile(f)) render(); }); }
+}
 function renderSettings(main) {
   const counts = ENTS.map(e => `<div><b>${faNum(DB[e].length)}</b>${esc(SCHEMA[e].title)}</div>`).join('');
   const hasSeed = !CLOUD.on && !!($('#seed-xlsx')?.textContent || '').trim();
@@ -1810,6 +1845,7 @@ function renderSettings(main) {
     <section class="card" style="grid-column:1/-1"><h3>نمودارهای صفحه‌ی داشبورد</h3><p>هر نموداری را که نمی‌خواهید در صفحه‌ی اصلی ببینید خاموش کنید؛ بقیه دوباره کل صفحه را پر می‌کنند.</p>
       <div class="toggles">${TILE_LIST.map(w => `<label><input type="checkbox" data-widget="${w.id}"${shown(w.id) ? ' checked' : ''}> ${esc(w.l)}</label>`).join('')}</div></section>
   </div>`);
+  bindReimport();
 }
 function renderWelcome() {
   destroyCharts();
@@ -1920,7 +1956,6 @@ document.addEventListener('change', async e => {
   const el = e.target;
   if (el.dataset.widget) { PREFS.hidden[el.dataset.widget] = !el.checked; savePrefs(); return; }
   if (MODAL && el.id === `f-${MODAL.ent}-childId`) updateChildHint(MODAL.ent);
-  if (el.id === 'reimport' && el.files[0]) { if (await importFile(el.files[0])) render(); }
 });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
