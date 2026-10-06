@@ -210,6 +210,10 @@ tfoot td{font-weight:700;border-bottom:0;color:var(--ink-2)}
 .modal.max .detail .tbl-scroll{flex:1;min-height:0;max-height:none}
 .detail-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;font-size:13px}
 .detail-head .spacer{margin-inline-end:auto}
+.pay-lines{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.pay-line{all:unset;cursor:pointer;font-size:12.5px;color:var(--ink-2);padding:1px 8px;border-radius:6px;background:var(--panel-2);border:1px solid var(--line)}
+.pay-line:hover,.pay-line:focus-visible{border-color:var(--c1);color:#fff;outline:none}
+.pay-line b{color:var(--ink);font-weight:600}
 .detail-head .chip{background:color-mix(in srgb,var(--c1) 22%,var(--panel-solid));color:#fff}
 .board .tile .body{cursor:zoom-in}
 .btn.report-btn{border-color:var(--c2);color:#fff;background:color-mix(in srgb,var(--c2) 18%,var(--panel));box-shadow:0 0 14px color-mix(in srgb,var(--c2) 40%,transparent);font-weight:700}
@@ -1550,8 +1554,7 @@ function drawTiles(defs, prefix) {
   if (!setChartDefaults()) return;
   for (const d of defs) if (d.cfg && !d.empty && d.kind !== 'html') {
     const cfg = d.cfg();
-    cfg.options.onClick = chartClick(d.id, prefix);
-    cfg.options.onHover = (evt, els, chart) => { chart.canvas.style.cursor = els && els.length ? 'pointer' : (prefix === 'ch-' ? 'zoom-in' : 'default'); };
+    cfg.options.onHover = (evt, els, chart) => { chart.canvas.style.cursor = els && els.length || prefix !== 'ch-' ? 'pointer' : 'zoom-in'; };
     mk(prefix + d.id, cfg);
   }
 }
@@ -1852,16 +1855,30 @@ const DCOL = {
     { l: 'روش / پرداخت‌کننده', v: r => esc(r.method || '') },
     { l: 'مبلغ (تومان)', v: r => full(r.amount), num: true, sum: r => r.amount },
   ],
-  child: [
+  // who is in which class / age group: names only, no money
+  roster: [
     { l: 'نام', v: c => `<span class="name">${esc(c.name)}</span>` },
     { l: 'کلاس', v: c => esc(clsOf(c)) },
-    { l: 'گروه / حضور', v: c => `${esc(c.group || '')} · ${esc(c.attendance || '')}` },
+    { l: 'گروه سنی', v: c => esc(c.group || '') },
+    { l: 'نوع حضور', v: c => esc(c.attendance || '') },
+  ],
+  // tuition only
+  tuition: [
+    { l: 'نام', v: c => `<span class="name">${esc(c.name)}</span>` },
     { l: 'تعهد', v: c => full(fin(c.id).expected), num: true, sum: c => fin(c.id).expected },
     { l: 'دریافت‌شده', v: c => full(fin(c.id).received), num: true, sum: c => fin(c.id).received },
     { l: 'چک و قسط', v: c => full(fin(c.id).scheduled), num: true, sum: c => fin(c.id).scheduled },
+    { l: 'بی‌برنامه', v: c => full(fin(c.id).unscheduled), num: true, sum: c => fin(c.id).unscheduled },
     { l: 'مانده', v: c => full(fin(c.id).remaining), num: true, sum: c => fin(c.id).remaining },
-    { l: 'بیمه', v: c => statusPill('children', 'insurance', c.insurance) },
-    { l: 'چک‌ها', v: c => `<span class="muted">${esc(c.checkStatus || '—')}</span>` },
+  ],
+  // the three rings: tuition collected, sports insurance, cheques handed in
+  rings: [
+    { l: 'نام', v: c => `<span class="name">${esc(c.name)}</span>` },
+    { l: 'تعهد شهریه', v: c => full(fin(c.id).expected), num: true, sum: c => fin(c.id).expected },
+    { l: 'دریافت‌شده', v: c => full(fin(c.id).received), num: true, sum: c => fin(c.id).received },
+    { l: 'مانده', v: c => full(fin(c.id).remaining), num: true, sum: c => fin(c.id).remaining },
+    { l: 'بیمه ورزشی', v: c => statusPill('children', 'insurance', c.insurance) },
+    { l: 'تحویل چک', v: c => `<span class="muted">${esc(c.checkStatus || '—')}</span>` },
   ],
   inst: [
     { l: 'کودک', v: i => `<span class="name">${esc(childById(i.childId)?.name || i.childId || '—')}</span>` },
@@ -1888,8 +1905,44 @@ const DCOL = {
     { l: 'وضعیت', v: e => eventPill(e.status) }, { l: 'بودجه', v: e => full(e.budget), num: true }, { l: 'اقدام بعدی', v: e => `<span class="muted">${esc(e.next || '')}</span>` },
   ],
 };
-const OPEN = { receipt: r => `${r.src}:${r.id}`, cost: r => `${r.src}:${r.id}`, child: c => `children:${c.id}`, inst: i => `installments:${i.id}`, staff: s => `staff:${s.id}`, tariff: t => `tariffs:${t.id}`, event: e => `events:${e.id}` };
+const OPEN = { receipt: r => `${r.src}:${r.id}`, cost: r => `${r.src}:${r.id}`, roster: c => `children:${c.id}`, tuition: c => `children:${c.id}`, rings: c => `children:${c.id}`, service: r => `children:${r.c.id}`, inst: i => `installments:${i.id}`, staff: s => `staff:${s.id}`, tariff: t => `tariffs:${t.id}`, event: e => `events:${e.id}` };
 const byRemaining = (a, b) => fin(b.id).remaining - fin(a.id).remaining;
+/* side services: which child has which, and the payments recorded for each */
+const SVC = [
+  { k: 'شنا', has: c => same(c.swim, 'دارد'), words: ['شنا', 'استخر'] },
+  { k: 'صبحانه و چاشت', has: c => same(c.meal, 'دارد'), words: ['صبحانه', 'چاشت'] },
+  { k: 'بیمه ورزشی', has: c => same(c.insurance, 'دریافت شد'), words: ['بیمه'] },
+];
+function svcOfPayment(p) {
+  const i = SVC.findIndex(x => same(x.k, p.category)); if (i >= 0) return i;
+  if (p.category && !same(p.category, 'سایر')) return -1;   // tuition, summer… are not side services
+  const t = norm(p.for); return t ? SVC.findIndex(x => x.words.some(w => t.includes(norm(w)))) : -1;
+}
+function serviceRows(M, only) {
+  const by = new Map(), get = c => { if (!by.has(c.id)) by.set(c.id, { c, has: SVC.map(x => x.has(c)), pays: SVC.map(() => []) }); return by.get(c.id); };
+  for (const c of M.active) if (SVC.some(x => x.has(c))) get(c);
+  for (const p of M.S.payments) { const i = svcOfPayment(p), c = i >= 0 && childById(p.childId); if (c) get(c).pays[i].push(p); }
+  const idx = only == null ? SVC.map((_, i) => i) : [only];
+  return [...by.values()].map(r => ({ ...r, idx, paid: sum(idx, i => sum(r.pays[i], p => p.amount)) }))
+    .filter(r => idx.some(i => r.has[i] || r.pays[i].length))
+    .sort((a, b) => String(a.c.name).localeCompare(String(b.c.name), 'fa'));
+}
+const svcCell = (r, i) => {
+  const paid = sum(r.pays[i], p => p.amount);
+  if (r.pays[i].length) return `<span class="num">${full(paid)}</span>`;
+  return r.has[i] ? pill('warn', 'پرداختی ثبت نشده', '!') : '<span class="muted">—</span>';
+};
+const payLine = p => `<button type="button" class="pay-line" data-open="payments:${esc(p.id)}" title="باز کردن این دریافت">${p.date ? esc(faDigits(normDate(p.date) || p.date)) : '<span class="muted">بدون تاریخ</span>'} · ${esc(p.for || p.category || '')} · <b class="num">${full(p.amount)}</b>${p.method && !same(p.method, 'نامشخص') ? ` · ${esc(p.method)}` : ''}</button>`;
+function serviceCols(only) {
+  const name = { l: 'نام کودک', v: r => `<span class="name">${esc(r.c.name)}</span>${isActive(r.c) ? '' : ' <span class="muted">(غیرفعال)</span>'}` };
+  const total = { l: 'جمع پرداختی (تومان)', v: r => full(r.paid), num: true, sum: r => r.paid };
+  if (only == null) return [name,
+    { l: 'خدمات', v: r => SVC.map((x, i) => r.has[i] || r.pays[i].length ? `<span class="chip">${esc(x.k)}</span>` : '').join(' ') },
+    ...SVC.map((x, i) => ({ l: x.k, v: r => svcCell(r, i), num: true })), total];
+  return [name,
+    { l: 'پرداخت‌ها', v: r => r.pays[only].length ? `<div class="pay-lines">${r.pays[only].slice().sort(byDateDesc).map(payLine).join('')}</div>` : pill('warn', 'پرداختی ثبت نشده', '!') },
+    total];
+}
 function tileDetail(id, M, sel) {
   const S = M.S, kids = M.active.slice();
   const pend = M.pend.filter(i => jdnOf(i.due) != null).sort((a, b) => jdnOf(a.due) - jdnOf(b.due));
@@ -1902,18 +1955,17 @@ function tileDetail(id, M, sel) {
     }
     case 'category': { let rows = receiptRows(S); if (sel) rows = rows.filter(r => sel.cat === 'سایر' ? !PAY_CATS.slice(0, -1).some(c => same(c, r.category)) : same(r.category, sel.cat)); return { kind: 'receipt', title: 'همه‌ی دریافت‌ها', rows: rows.sort(byDateDesc) }; }
     case 'method': { let rows = receiptRows(S); if (sel) rows = rows.filter(r => same(r.method, sel.method)); return { kind: 'receipt', title: 'همه‌ی دریافت‌ها', rows: rows.sort(byDateDesc) }; }
-    case 'rings': return { kind: 'child', title: 'کودکان فعال · بیشترین مانده اول', rows: kids.sort(byRemaining) };
-    case 'classes': { let rows = kids; if (sel) rows = rows.filter(c => same(clsOf(c), sel.cls)); return { kind: 'child', title: 'کودکان فعال', rows: rows.sort((a, b) => String(clsOf(a)).localeCompare(String(clsOf(b)), 'fa') || String(a.name).localeCompare(String(b.name), 'fa')) }; }
-    case 'ageAtt': { let rows = kids; if (sel) rows = rows.filter(c => same(c.group, sel.group) && (!sel.att || same(c.attendance, sel.att))); return { kind: 'child', title: 'کودکان فعال', rows: rows.sort(byRemaining) }; }
+    case 'rings': return { kind: 'rings', title: 'شهریه، بیمه و چک کودکان فعال · بیشترین مانده اول', rows: kids.sort(byRemaining) };
+    case 'classes': { let rows = kids; if (sel) rows = rows.filter(c => same(clsOf(c), sel.cls)); return { kind: 'roster', title: 'کودکان فعال', rows: rows.sort((a, b) => String(clsOf(a)).localeCompare(String(clsOf(b)), 'fa') || String(a.name).localeCompare(String(b.name), 'fa')) }; }
+    case 'ageAtt': { let rows = kids; if (sel) rows = rows.filter(c => same(c.group, sel.group) && (!sel.att || same(c.attendance, sel.att))); return { kind: 'roster', title: 'کودکان فعال', rows: rows.sort((a, b) => String(a.name).localeCompare(String(b.name), 'fa')) }; }
     case 'services': {
-      const tests = [c => same(c.swim, 'دارد'), c => same(c.meal, 'دارد'), c => same(c.insurance, 'دریافت شد')];
-      const rows = sel ? kids.filter(tests[sel.i]) : kids.filter(c => tests.some(f => f(c)));
-      return { kind: 'child', title: 'کودکان دارای خدمات جانبی', rows: rows.sort((a, b) => String(a.name).localeCompare(String(b.name), 'fa')) };
+      const only = sel ? sel.i : null;
+      return { kind: 'service', cols: serviceCols(only), title: only == null ? 'کودکان و خدمات جانبی‌شان' : `کودکان دارای ${SVC[only].k} و پرداخت‌هایشان`, rows: serviceRows(M, only) };
     }
     case 'tuition': {
       let rows = kids.filter(c => fin(c.id).expected > 0);
       if (sel) rows = rows.filter(c => sel.part === 0 ? fin(c.id).received > 0 : sel.part === 1 ? fin(c.id).scheduled > 0 : fin(c.id).unscheduled > 0);
-      return { kind: 'child', title: 'شهریه‌ی کودکان فعال · بیشترین مانده اول', rows: rows.sort(byRemaining) };
+      return { kind: 'tuition', title: 'شهریه‌ی کودکان فعال · بیشترین مانده اول', rows: rows.sort(byRemaining) };
     }
     case 'staff': { let rows = M.staffActive.slice(); if (sel) rows = rows.filter(s => same(s.role, sel.role)); return { kind: 'staff', title: 'پرسنل فعال', rows }; }
     case 'dues': { let rows = pend; if (sel) rows = rows.filter(i => normDate(i.due).slice(0, 7) === sel.month && (sel.cheque == null || same(i.type, 'چک') === sel.cheque)); return { kind: 'inst', title: 'چک‌ها و اقساط در انتظار · نزدیک‌ترین سررسید اول', rows }; }
@@ -1933,7 +1985,7 @@ function tilePick(id, M, index, ds) {
     case 'method': { const x = methItems[index]; return x ? { method: x.l, label: x.l } : null; }
     case 'classes': { const x = M.classes[index]; return x ? { cls: x.cl, label: `کلاس ${x.cl}` } : null; }
     case 'ageAtt': { const g = M.groups[index], a = M.atts[ds]; return g ? { group: g, att: a, label: `${g}${a ? ' · ' + a : ''}` } : null; }
-    case 'services': return index >= 0 && index < 3 ? { i: index, label: ['شنا', 'صبحانه و چاشت', 'بیمه‌ی پرداخت‌شده'][index] } : null;
+    case 'services': return SVC[index] ? { i: index, label: SVC[index].k } : null;
     case 'tuition': return index >= 0 && index < 3 ? { part: index, label: ['دریافت‌شده', 'چک و قسط در جریان', 'بدون برنامه‌ی پرداخت'][index] } : null;
     case 'staff': { const r = M.roles[index]; return r ? { role: r, label: r } : null; }
     case 'dues': { const m = M.months[index]; return m ? { month: m, cheque: ds === 0 ? true : ds === 1 ? false : null, label: `${monthLabels([m])[0]}${ds === 0 ? ' · چک' : ds === 1 ? ' · قسط نقدی' : ''}` } : null; }
@@ -1942,29 +1994,39 @@ function tilePick(id, M, index, ds) {
   }
   return null;
 }
-function tableHtml(kind, rows, emptyText) {
-  const cols = DCOL[kind], open = OPEN[kind];
+function tableHtml(kind, rows, emptyText, cols = DCOL[kind]) {
+  const open = OPEN[kind];
   return `<div class="tbl-scroll"><table><thead><tr>${cols.map(c => `<th scope="col">${esc(c.l)}</th>`).join('')}</tr></thead><tbody>${rows.length
     ? rows.map(r => `<tr data-open="${esc(open(r))}">${cols.map(c => `<td class="${c.num ? 'num' : ''}">${c.v(r)}</td>`).join('')}</tr>`).join('')
     : `<tr class="empty-row"><td colspan="${cols.length}">${esc(emptyText || 'موردی نیست.')}</td></tr>`}</tbody></table></div>`;
 }
-function totalOf(kind, rows) { const c = DCOL[kind].find(x => x.sum); return c ? sum(rows, c.sum) : null; }
+function totalOf(kind, rows, cols = DCOL[kind]) { const c = cols.find(x => x.sum); return c ? sum(rows, c.sum) : null; }
 function renderDetail(id) {
   const box = document.getElementById('mx-detail'); if (!box || !LAST_M) return;
   const D = tileDetail(id, LAST_M, MAX_SEL); if (!D) { box.innerHTML = ''; return; }
-  const total = totalOf(D.kind, D.rows), hasChart = !!(TILES_CACHE.find(x => x.id === id) || {}).cfg;
+  const total = totalOf(D.kind, D.rows, D.cols), hasChart = !!(TILES_CACHE.find(x => x.id === id) || {}).cfg;
   box.innerHTML = `<div class="detail-head"><b>${esc(D.title)}</b>
       ${MAX_SEL ? `<span class="chip">فقط: ${esc(MAX_SEL.label)} <button type="button" data-detail-clear aria-label="نمایش همه">✕</button></span>` : hasChart ? '<span class="muted">برای دیدن جزئیات هر بخش، روی میله یا قطعه‌ی نمودار بزنید.</span>' : ''}
       <span class="spacer"></span><span class="num">${faNum(D.rows.length)} مورد${total != null ? ` · جمع ${full(total)} تومان` : ''}</span></div>
-    ${tableHtml(D.kind, D.rows)}`;
+    ${tableHtml(D.kind, D.rows, '', D.cols)}`;
 }
-function chartClick(id, prefix) {
-  return (evt, els) => {
-    const el = els && els[0];
-    const sel = el && LAST_M ? tilePick(id, LAST_M, el.index, el.datasetIndex) : null;
-    if (prefix === 'ch-') { openMax(id, sel); return; }
-    MAX_SEL = sel; renderDetail(id);
-  };
+/* what a click anywhere on a chart canvas points at: the bar/slice under it, or — for bar and line
+   charts — the category whose label or column/row was clicked (so «شنا» beside its bar works too) */
+function pickAt(chart, e) {
+  const type = chart.config.type;
+  let els = chart.getElementsAtEventForMode(e, type === 'line' ? 'index' : 'nearest', { intersect: type !== 'line' }, false);
+  if (els.length) return els[0];
+  if (type !== 'bar') return null;
+  const pos = Chart.helpers.getRelativePosition(e, chart), horiz = chart.options.indexAxis === 'y';
+  const sc = chart.scales[horiz ? 'y' : 'x'], i = sc && Math.round(sc.getValueForPixel(horiz ? pos.y : pos.x));
+  return Number.isInteger(i) && i >= 0 && i < chart.data.labels.length ? { index: i, datasetIndex: undefined } : null;
+}
+function chartClick(canvas, e) {
+  const chart = Chart.getChart(canvas), prefix = canvas.id.slice(0, 3), id = canvas.id.slice(3);
+  const el = chart && pickAt(chart, e);
+  const sel = el && LAST_M ? tilePick(id, LAST_M, el.index, el.datasetIndex) : null;
+  if (prefix === 'ch-') { openMax(id, sel); return; }
+  MAX_SEL = sel; renderDetail(id);
 }
 /* ---------- daily report ---------- */
 let REPORT_P = 'today';
@@ -2135,6 +2197,8 @@ function togglePresent() {
 
 /* ================= events ================= */
 document.addEventListener('click', e => {
+  const cv = e.target.closest('canvas[id^="ch-"], canvas[id^="mx-"]');
+  if (cv && window.Chart && Chart.getChart(cv)) { chartClick(cv, e); return; }
   const tileHit = e.target.closest('.board .tile[data-tile]');
   if (tileHit && !e.target.closest('button, a, canvas, [data-open]')) { openMax(tileHit.dataset.tile); return; }
   const t = e.target.closest('button, th[data-sort], [data-open], label, a, .modal-bg'); if (!t) return;
