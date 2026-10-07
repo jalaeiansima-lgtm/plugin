@@ -222,6 +222,28 @@ td:has(>.pay-lines){white-space:normal;min-width:150px}
 .board .tile .body{cursor:zoom-in}
 .btn.report-btn{border-color:var(--c2);color:#fff;background:color-mix(in srgb,var(--c2) 18%,var(--panel));box-shadow:0 0 14px color-mix(in srgb,var(--c2) 40%,transparent);font-weight:700}
 .modal.report{width:min(1100px,100%)}
+.modal.stmt{width:min(1040px,100%)}
+.st-summary{font-size:14.5px;line-height:2;margin:4px 0 14px;padding:12px 16px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line)}
+.st-summary .owe,.owe{color:var(--warn)}
+.st-summary .clear{color:var(--good)}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:14px}
+.st-sec{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.st-sec h3{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0 0 8px;font-size:14px}
+.st-sec h3 small{flex-basis:100%;font-weight:400;font-size:12px;color:var(--ink-2)}
+.st-sec .pay-line{white-space:normal}
+.kid-pick{width:170px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:13px}
+.kid-pick:focus{outline:2px solid var(--c1);outline-offset:1px}
+.acc-help{margin:0 0 8px;font-size:12.5px}
+.acc-block td small{font-size:11px}
+.seg{display:inline-flex;gap:4px}.seg .opt{width:auto;margin:0;padding:3px 12px}
+@media print{
+  body{background:#fff!important}
+  #app,#toast-root,.close-x,.modal-actions,.pay-line[data-open]::after{display:none!important}
+  .modal-bg{position:static!important;background:none!important;backdrop-filter:none!important;padding:0!important;display:block!important}
+  .modal{position:static!important;width:auto!important;max-height:none!important;overflow:visible!important;box-shadow:none!important;border:0!important}
+  .modal,.modal *{color:#000!important;background:transparent!important;text-shadow:none!important;box-shadow:none!important;border-color:#bbb!important}
+  [data-collect]{display:none!important}
+}
 .rp-tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 14px}
 .rp-tabs .opt{width:auto;margin:0;padding:4px 14px}
 .rp-label{margin-inline-start:8px;font-size:12.5px}
@@ -425,15 +447,33 @@ function money(n) {
   return faNum(n);
 }
 const full = n => n == null || n === '' ? '—' : faNum(n);
+/* one number: «,» groups of three are thousands; «.» or «/» groups of three are thousands when no unit follows
+   (20.000.000), otherwise a single separator is a decimal point (۲٫۵ / ۲/۵ / 2,5 میلیون) */
+function moneyNum(s, unit) {
+  if (/^\d+$/.test(s)) return +s;
+  if (/^\d{1,3}([,٬،]\d{3})+(\.\d+)?$/.test(s)) return +s.replace(/[,٬،]/g, '');
+  if (!unit && /^\d{1,3}([.\/]\d{3})+$/.test(s)) return +s.replace(/[.\/]/g, '');
+  if (/^\d+[.٫\/,٬]\d+$/.test(s)) return +s.replace(/[.٫\/,٬]/, '.');
+  return null;
+}
+const MONEY_UNIT = { 'میلیارد': 1e9, 'ملیارد': 1e9, 'میلیون': 1e6, 'ملیون': 1e6, 'هزار': 1e3 };
+/* «۲۰ میلیون»، «۲۰ ملیون تومن»، «۲۰,۰۰۰,۰۰۰»، «۲۰.۰۰۰.۰۰۰»، «۲۰ میلیون و ۵۰۰ هزار»، «۲۰۰,۰۰۰,۰۰۰ ریال» → tomans */
 function parseMoney(v) {
   if (v == null || v === '') return null;
   if (typeof v === 'number') return isFinite(v) ? v : null;
-  const t = toEn(v).replace(/٫/g, '.').replace(/[,٬،\s]/g, '').replace(/تومان$/, '');
+  let t = norm(toEn(v)).replace(/[\u200B\u202A-\u202E\u2066-\u2069\u061C\uFEFF]/g, '').replace(/تومان|تومن/g, '').replace(/ت$/, '');
+  const rial = /ریال$/.test(t); if (rial) t = t.replace(/ریال$/, '');
+  const neg = t.startsWith('-'); if (neg) t = t.slice(1);
   if (t === '') return null;
-  const m = t.match(/^(-?\d+(?:\.\d+)?)(میلیارد|میلیون|هزار)?$/);
-  if (!m) return null;
-  const mult = m[2] === 'میلیارد' ? 1e9 : m[2] === 'میلیون' ? 1e6 : m[2] === 'هزار' ? 1e3 : 1;
-  return Math.round(Number(m[1]) * mult);
+  const parts = t.split(/و(?=\d)/); let total = 0;   // «و» only splits before a digit: «میلیون» has one too
+  for (const part of parts) {
+    const m = part.match(/^(\d[\d.,٬،٫\/]*)(میلیارد|ملیارد|میلیون|ملیون|هزار)?$/);
+    if (!m || (parts.length > 1 && !m[2])) return null;
+    const n = moneyNum(m[1], m[2]); if (n == null) return null;
+    total += n * (MONEY_UNIT[m[2]] || 1);
+  }
+  total = Math.round(rial ? total / 10 : total);
+  return neg ? -total : total;
 }
 
 /* ================= Jalali calendar ================= */
@@ -506,6 +546,7 @@ function dateFromExcel(v) {
 /* ================= domain vocab ================= */
 const AGE = ['نوباوه','پیش‌یک','پیش‌دو'];
 const ATT = ['هرروز','یک‌روزدرمیان'];
+const VOCAB_ALIAS = { 'پیش1': 'پیش‌یک', 'پیش2': 'پیش‌دو', 'یکدرمیان': 'یک‌روزدرمیان', 'روزدرمیان': 'یک‌روزدرمیان', 'یکروزدرمیون': 'یک‌روزدرمیان', 'هرروزه': 'هرروز' };
 const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','تابستان','سایر'];
 const METHODS = ['کارت','واریز','اسکناس','نامشخص'];
 const INST_STATUS = ['چک هنوز تحویل نشده','در انتظار سررسید','وصول‌شده','پرداخت‌شده','برگشتی'];
@@ -525,7 +566,7 @@ const SCHEMA = {
     { k: 'payMode', h: 'نحوه پرداخت شهریه', type: 'combo', def: 'نقد + چک (طبق تعرفه)', opts: () => uniq(['نقد + چک (طبق تعرفه)','نقد + اقساط نقدی','تسویه کامل','ثبت‌نام یک‌ماهه','آزمایشی یک‌ماهه','معاف از شهریه', ...DB.children.map(c => c.payMode)]) },
     { k: 'agreedFee', h: 'شهریه توافقی', type: 'money', hint: 'خالی بماند یعنی طبق تعرفه' },
     { k: 'swim', h: 'شنا', type: 'select', opts: () => ['', 'دارد'] },
-    { k: 'meal', h: 'صبحانه و چاشت', type: 'select', opts: () => ['', 'دارد'] },
+    { k: 'meal', h: 'صبحانه و چاشت', type: 'select', opts: () => ['', 'صبحانه', 'چاشت', 'صبحانه و چاشت'] },
     { k: 'insurance', h: 'بیمه ورزشی', type: 'select', opts: () => ['دریافت نشده','دریافت شد','معاف'], def: 'دریافت نشده' },
     { k: 'checkStatus', h: 'وضعیت چک‌ها', type: 'combo', def: 'هنوز تحویل نداده', opts: () => uniq(['هنوز تحویل نداده','تحویل داده', ...DB.children.map(c => c.checkStatus)]) },
     { k: 'notes', h: 'توضیحات', type: 'note' },
@@ -901,7 +942,7 @@ function scheduleRender() {
   renderTimer = setTimeout(() => {
     if (!DB || !CLOUD.ready) return;
     const a = document.activeElement;
-    if (a && a.classList && a.classList.contains('search')) { computeFin(); (PAGES.find(p => p.id === currentPage())?.ents || []).forEach(fillTable); updateSyncChip(); return; }
+    if (a && a.classList && a.classList.contains('search')) { computeFin(); (PAGES.find(p => p.id === currentPage())?.ents || []).forEach(fillTable); fillAccounts(); refreshOpenWindow(currentPage() === 'dashboard'); updateSyncChip(); return; }
     render();
   }, 150);
 }
@@ -1511,13 +1552,13 @@ function buildTiles(M, t) {
       options: baseOpts(t, { horizontal: true, stacked: true, labels: true, unit: 'کودک', grace: '16%' }) }) });
   const svc = SVC.map((x, i) => ({ l: x.bar || x.k, k: x.k, v: serviceRows(M, i).length }));   // same rule as the list behind each bar
   // one price per service: «صبحانه و چاشت ۱٫۸–۳٫۶ میلیون»
-  const prices = Object.create(null); for (const s of DB.services) { const k = String(s.title || '').replace(/\s*\(.*\)\s*$/, '').trim(); if (!k || s.amount == null) continue; (prices[k] = prices[k] || []).push(+s.amount); }
-  const priceNote = Object.entries(prices).map(([k, a]) => { const lo = Math.min(...a), hi = Math.max(...a); return `${k} ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`}`; }).join(' · ');
+  const prices = Object.create(null); for (const s of DB.services) { const l = String(s.title || '').replace(/\s*\(.*\)\s*$/, '').trim(), k = norm(l); if (!k || s.amount == null) continue; (prices[k] = prices[k] || { l, a: [] }).a.push(+s.amount); }
+  const priceNote = Object.values(prices).map(({ l: k, a }) => { const lo = Math.min(...a), hi = Math.max(...a); return `${k} ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`}`; }).join(' · ');
   T.push({ id: 'services', t: 'خدمات جانبی', sub: `از ${faNum(M.active.length)} کودک فعال`, sheet: 'خدمات', page: 'tariffs', tc: C[1], note: priceNote,
     empty: M.active.length ? '' : none('کودک فعالی ثبت نشده است.'),
     cfg: () => {
       const o = baseOpts(t, { horizontal: true, labels: true, unit: 'نفر', grace: '30%', labelFmt: v => `${faNum(v)} نفر` });
-      o.plugins.tooltip.callbacks.footer = items => { const key = Object.keys(prices).find(k => same(k, svc[items[0].dataIndex].k)), a = key && prices[key]; if (!a) return ''; const lo = Math.min(...a), hi = Math.max(...a); return `قیمت: ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`} تومان`; };
+      o.plugins.tooltip.callbacks.footer = items => { const pr = prices[norm(svc[items[0].dataIndex].k)], a = pr && pr.a; if (!a) return ''; const lo = Math.min(...a), hi = Math.max(...a); return `قیمت: ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`} تومان`; };
       return { type: 'bar', data: { labels: svc.map(x => x.l), datasets: [barDs('تعداد', svc.map(x => x.v), C[1], hGrad(C[1]))] }, options: o };
     } });
   const tuItems = [{ l: 'دریافت‌شده', v: M.tot.collected, c: C[0] }, { l: 'چک و قسط', v: M.tot.scheduled, c: C[1] }, { l: 'بی‌برنامه', v: M.tot.unscheduled, c: C[2] }];
@@ -1541,7 +1582,7 @@ function buildTiles(M, t) {
     cfg: () => {
       const o = baseOpts(t, { horizontal: true, stacked: true, millions: true, money: true, labels: true, labelFmt: m1, grace: '22%', blur: 8 });
       o.plugins.tooltip.callbacks.title = items => { const x = tf[items[0].dataIndex]; return `${x.group || ''} · ${x.attendance || ''} — جمع ${full(tariffTotal(x))}`; };
-      return { type: 'bar', data: { labels: tf.map(x => `${x.group || ''} · ${String(x.attendance || '').replace(/یک‌?روز‌?درمیان/, 'یک‌درمیان')}`), datasets: [
+      return { type: 'bar', data: { labels: tf.map(x => `${x.group || ''} · ${(same(x.attendance, 'یک‌روزدرمیان') ? 'یک‌درمیان' : x.attendance || '')}`), datasets: [
         barDs('نقدی', tf.map(x => +x.cash || 0), C[0], C[0], { stack: 's', borderRadius: 3 }), barDs('چک اول', tf.map(x => +x.check1 || 0), C[1], C[1], { stack: 's', borderRadius: 3 }), barDs('چک دوم', tf.map(x => +x.check2 || 0), C[2], C[2], { stack: 's', borderRadius: 3 })] }, options: o };
     } });
   const hasCosts = M.salByM.some(v => v) || M.expByM.some(v => v);
@@ -1664,7 +1705,7 @@ function fillTable(ent) {
     return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'fa')) * srt.dir;
   });
   $('thead', block).innerHTML = `<tr>${cols.map(c => `<th${c.l ? ` data-sort="${c.k}"` : ''}${c.hcls ? ` class="${c.hcls}"` : ''} scope="col">${esc(c.l)}${c.k === srt.k && c.l ? `<span class="dir">${srt.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}</tr>`;
-  $('tbody', block).innerHTML = rows.length ? rows.map(({ r, cells }) => `<tr data-open="${ent}:${esc(r.id)}">${cells.map(c => `<td class="${c.cls || ''}">${c.html}</td>`).join('')}</tr>`).join('')
+  $('tbody', block).innerHTML = rows.length ? rows.map(({ r, cells }) => `<tr data-open="${ent === 'children' ? 'stmt' : ent}:${esc(r.id)}">${cells.map(c => `<td class="${c.cls || ''}">${c.html}</td>`).join('')}</tr>`).join('')
     : `<tr class="empty-row"><td colspan="${cols.length}">${UI.search[ent] ? 'موردی با این جستجو پیدا نشد.' : filtersOn() && ['children', 'payments', 'installments'].includes(ent) ? 'با فیلترهای فعلی موردی نیست.' : `هنوز ${esc(SCHEMA[ent].any || SCHEMA[ent].one + 'ی')} ثبت نشده است. با دکمه‌ی «افزودن» اولین مورد را ثبت کنید.`}</td></tr>`;
   const moneyCols = cols.map((c, i) => c.money ? i : -1).filter(i => i >= 0);
   $('tfoot', block).innerHTML = rows.length && moneyCols.length ? `<tr>${cols.map((c, i) => `<td class="num">${i === 0 ? 'جمع' : c.money ? full(sum(rows, x => c.val ? c.val(x.r) : x.r[c.k])) : ''}</td>`).join('')}</tr>` : '';
@@ -1718,8 +1759,7 @@ function openForm(ent, id, preset) {
   syncToday();
   const sc = SCHEMA[ent], existing = id ? DB[ent].find(r => r.id === id) : null;
   if (id && !existing) return;
-  const mx = $('#modal-root .modal.max');
-  BACK = mx ? { max: mx.dataset.maxId, sel: MAX_SEL } : $('#modal-root .modal.report') ? { report: true } : MODAL ? BACK : null;
+  BACK = windowState() || (MODAL ? BACK : null);
   const rec = existing ? { ...existing } : newRecord(ent, preset);
   MODAL = { ent, id: existing ? existing.id : null, rec };
   const fields = sc.fields.filter(f => !(f.type === 'id' && !f.h));
@@ -1737,13 +1777,23 @@ function openForm(ent, id, preset) {
   if (ent === 'payments' || ent === 'installments') updateChildHint(ent);
   const first = $('#m-form input:not([readonly]), #m-form select'); if (first) first.focus();
 }
-function closeModal() {
-  if (SUBMITTING) return; destroyCharts('mx-'); $('#modal-root').innerHTML = ''; MODAL = null;
-  const b = BACK; BACK = null;
-  if (BOARD_STALE && DB && currentPage() === 'dashboard') render();
+/* the window open in #modal-root (chart list, report, child account), to come back to after a form or account */
+function windowState() {
+  const mx = $('#modal-root .modal.max'), st = $('#modal-root .modal.stmt');
+  return mx ? { max: mx.dataset.maxId, sel: MAX_SEL } : $('#modal-root .modal.report') ? { report: true } : st ? { stmt: st.dataset.stmtId, back: STMT_BACK } : null;
+}
+function reopenWindow(b) {
   if (!b || !DB) return;
   if (b.report) openReport();
+  else if (b.stmt) openStatement(b.stmt, b.back || null);
   else if (b.max && currentPage() === 'dashboard' && TILES_CACHE.some(x => x.id === b.max)) openMax(b.max, b.sel);
+}
+function closeModal() {
+  if (SUBMITTING) return;
+  const b = MODAL ? BACK : $('#modal-root .modal.stmt') ? STMT_BACK : null;
+  BACK = null; destroyCharts('mx-'); $('#modal-root').innerHTML = ''; MODAL = null;
+  if (BOARD_STALE && DB && currentPage() === 'dashboard') render();
+  reopenWindow(b);
 }
 function updateDateHint(el) {
   const h = document.getElementById(el.id + '-hint'); if (!h) return;
@@ -1756,8 +1806,10 @@ function updateDateHint(el) {
 }
 function updateMoneyHint(id, f) {
   const el = document.getElementById(id), h = document.getElementById(id + '-hint'); if (!el || !h) return;
-  const n = parseMoney(el.value);
-  h.textContent = n != null && el.value.trim() !== '' ? `${full(n)} تومان (${money(n)})` : (f.hint || '');
+  const raw = el.value.trim(), n = parseMoney(raw);
+  h.classList.toggle('bad', !!raw && (n == null || (n > 0 && n < 1000)));
+  h.textContent = !raw ? (f.hint || '') : n == null ? 'این مبلغ خوانده نشد؛ مثلاً ۲۰٬۰۰۰٬۰۰۰ یا ۲۰ میلیون یا ۲٫۵ میلیون'
+    : `${full(n)} تومان (${money(n)})${n > 0 && n < 1000 ? ' — کمتر از هزار تومان؛ درست است؟' : ''}`;
 }
 function updateChildHint(ent) {
   const el = document.getElementById(`f-${ent}-childId`), h = document.getElementById(`f-${ent}-childId-hint`); if (!el || !h) return;
@@ -1774,11 +1826,18 @@ function readForm() {
     if (f.type === 'money' || f.type === 'int') { if (v === '') v = null; else { const n = parseMoney(v); if (n == null) errs.push([f.k, 'یک عدد وارد کنید، مثلاً 20000000 یا ۲۰ میلیون']); else if (n < 0) errs.push([f.k, 'مبلغ نمی‌تواند منفی باشد']); v = n; } }
     else if (f.type === 'date') { if (v === '') v = null; else { const d = normDate(v); if (!d) errs.push([f.k, `تاریخ را به شکل ${TODAY} بنویسید`]); v = d || v; } }
     else if (f.type === 'month') { if (v === '') v = null; else { const m = jMonth(v); if (!m) errs.push([f.k, `ماه را به شکل ${TODAY.slice(0, 7)} یا ${TODAY} بنویسید`]); else v = m; } }
+    else if (f.type === 'combo' && v !== '') v = (['group', 'attendance'].includes(f.k) && VOCAB_ALIAS[norm(toEn(v))]) || f.opts().find(o => same(o, v)) || v;
     else v = v === '' ? null : v;
     if (f.req && (v == null || v === '') && !errs.some(x => x[0] === f.k)) errs.push([f.k, 'این خانه را پر کنید']);
     out[f.k] = v;
   }
-  if (ent === 'tariffs' && out.total == null && (out.cash != null || out.check1 != null || out.check2 != null)) out.total = (+out.cash || 0) + (+out.check1 || 0) + (+out.check2 || 0);
+  if (ent === 'tariffs') {
+    const sumOf = o => (+o.cash || 0) + (+o.check1 || 0) + (+o.check2 || 0), hasParts = out.cash != null || out.check1 != null || out.check2 != null;
+    const wasAuto = rec.total == null || +rec.total === sumOf(rec);   // the old total was just the sum of the parts
+    if (hasParts && (out.total == null || (wasAuto && out.total === rec.total))) out.total = sumOf(out);
+    const dup = out.group && out.attendance && DB.tariffs.find(t => t.id !== out.id && same(t.group, out.group) && same(t.attendance, out.attendance));
+    if (dup) errs.push(['attendance', `برای ${dup.group} · ${dup.attendance} قبلاً تعرفه ثبت شده؛ همان را ویرایش کنید`]);
+  }
   for (const [k, msg] of errs) { const fe = $(`.field[data-k="${k}"]`, $('#m-form')); if (fe) { fe.classList.add('err'); $('.hint', fe).textContent = msg; } }
   return errs.length ? null : out;
 }
@@ -1832,7 +1891,9 @@ function tryDelete(btn) {
 }
 function refreshOpenWindow(isDash) {
   const box = $('#modal-root .modal'), top = box ? box.scrollTop : 0, tbl = $('#mx-detail .tbl-scroll'), tblTop = tbl ? tbl.scrollTop : 0;
+  const st = $('.modal.stmt');
   if ($('.modal.report')) openReport();
+  else if (st) openStatement(st.dataset.stmtId, STMT_BACK);
   else { const m = $('.modal.max'); if (!m || !isDash) return; if (TILES_CACHE.some(x => x.id === m.dataset.maxId)) openMax(m.dataset.maxId, MAX_SEL, true); else { closeModal(); return; } }
   const nb = $('#modal-root .modal'), nt = $('#mx-detail .tbl-scroll'); if (nb) nb.scrollTop = top; if (nt) nt.scrollTop = tblTop;
 }
@@ -1946,12 +2007,14 @@ const DCOL = {
     { l: 'وضعیت', v: e => eventPill(e.status) }, { l: 'بودجه', v: e => full(e.budget), num: true }, { l: 'اقدام بعدی', v: e => `<span class="muted">${esc(e.next || '')}</span>` },
   ],
 };
-const OPEN = { receipt: r => `${r.src}:${r.id}`, cost: r => `${r.src}:${r.id}`, roster: c => `children:${c.id}`, tuition: c => `children:${c.id}`, rings: c => `children:${c.id}`, service: r => `children:${r.c.id}`, inst: i => `installments:${i.id}`, staff: s => `staff:${s.id}`, tariff: t => `tariffs:${t.id}`, event: e => `events:${e.id}` };
+const OPEN = { receipt: r => `${r.src}:${r.id}`, cost: r => `${r.src}:${r.id}`, roster: c => `stmt:${c.id}`, tuition: c => `stmt:${c.id}`, rings: c => `stmt:${c.id}`, service: r => `stmt:${r.c.id}`, inst: i => `installments:${i.id}`, staff: s => `staff:${s.id}`, tariff: t => `tariffs:${t.id}`, event: e => `events:${e.id}` };
 const byRemaining = (a, b) => fin(b.id).remaining - fin(a.id).remaining;
 /* side services: which child has which, and the payments recorded for each */
+/* «دارد» from older sheets means both */
+const mealOf = c => { const m = String(c.meal ?? '').trim(); return !m || same(m, 'ندارد') ? '' : same(m, 'دارد') ? 'صبحانه و چاشت' : m; };
 const SVC = [
   { k: 'شنا', has: c => same(c.swim, 'دارد'), words: ['شنا', 'استخر'] },
-  { k: 'صبحانه و چاشت', has: c => same(c.meal, 'دارد'), words: ['صبحانه', 'چاشت'] },
+  { k: 'صبحانه و چاشت', has: c => !!mealOf(c), monthly: true, words: ['صبحانه', 'چاشت'] },
   { k: 'بیمه ورزشی', bar: 'بیمه (پرداخت‌شده)', has: c => same(c.insurance, 'دریافت شد'), words: ['بیمه'] },
 ];
 function svcOfPayment(p) {
@@ -1968,22 +2031,25 @@ function serviceRows(M, only) {
     .filter(r => idx.some(i => r.has[i] || r.pays[i].length))
     .sort((a, b) => String(a.c.name).localeCompare(String(b.c.name), 'fa'));
 }
+const paidThisMonth = (r, i) => r.pays[i].some(p => payMonth(p) === curMonth());
 const svcCell = (r, i) => {
-  const paid = sum(r.pays[i], p => p.amount);
-  if (r.pays[i].length) return `<span class="num">${full(paid)}</span>`;
-  return r.has[i] ? pill('warn', 'پرداختی ثبت نشده', '!') : '<span class="muted">—</span>';
+  const paid = sum(r.pays[i], p => p.amount), due = r.has[i] && SVC[i].monthly && !paidThisMonth(r, i);
+  const kind = i === 1 && r.has[i] ? `<small class="muted">${esc(mealOf(r.c))}</small> ` : '';
+  if (r.pays[i].length) return `${kind}<span class="num">${full(paid)}</span>${due ? ' ' + pill('warn', `${curMonthName()} پرداخت نشده`, '!') : ''}`;
+  return r.has[i] ? kind + pill('warn', SVC[i].monthly ? `${curMonthName()} پرداخت نشده` : 'پرداختی ثبت نشده', '!') : '<span class="muted">—</span>';
 };
 const payLine = p => `<button type="button" class="pay-line" data-open="payments:${esc(p.id)}" title="باز کردن این دریافت">${p.date ? esc(faDigits(normDate(p.date) || p.date)) : '<span class="muted">بدون تاریخ</span>'} · ${esc(p.for || p.category || '')} · <b class="num">${full(p.amount)}</b>${p.method && !same(p.method, 'نامشخص') ? ` · ${esc(p.method)}` : ''}</button>`;
 function serviceCols(only) {
   const name = { l: 'نام کودک', v: r => `<span class="name">${esc(r.c.name)}</span>${isActive(r.c) ? '' : ' <span class="muted">(غیرفعال)</span>'}` };
   const total = { l: 'جمع پرداختی (تومان)', v: r => full(r.paid), num: true, sum: r => r.paid };
   if (only == null) return [name,
-    { l: 'خدمات', v: r => SVC.map((x, i) => r.has[i] || r.pays[i].length ? `<span class="chip">${esc(x.k)}</span>` : '').join(' ') },
+    { l: 'خدمات', v: r => SVC.map((x, i) => r.has[i] || r.pays[i].length ? `<span class="chip">${esc(i === 1 && mealOf(r.c) ? mealOf(r.c) : x.k)}</span>` : '').join(' ') },
     ...SVC.map((x, i) => ({ l: x.k, v: r => svcCell(r, i), num: true })), total];
   return [name,
     { l: 'پرداخت‌ها', sum: r => r.paid, v: r => r.pays[only].length
       ? `<div class="pay-lines">${r.pays[only].slice().sort(byDateDesc).map(payLine).join('')}${r.pays[only].length > 1 ? `<small class="muted">جمع <span class="num">${full(r.paid)}</span></small>` : ''}</div>`
-      : pill('warn', 'پرداختی ثبت نشده', '!') }];
+      : pill('warn', 'پرداختی ثبت نشده', '!') },
+    ...(SVC[only].monthly ? [{ l: curMonthName(), v: r => `${r.has[only] ? `<small class="muted">${esc(mealOf(r.c))}</small> ` : ''}${paidThisMonth(r, only) ? pill('good', 'پرداخت شد', '✓') : r.has[only] ? pill('warn', 'پرداخت نشده', '!') : '<span class="muted">—</span>'}` }] : [])];
 }
 function tileDetail(id, M, sel) {
   const S = M.S, kids = M.active.slice();
@@ -2119,10 +2185,122 @@ function openReport(p) {
   </div></div>`;
 }
 
+/* ================= child accounts =================
+   «حساب کودکان»: one row per child with what was paid for each branch (tuition, swimming, meals, insurance…)
+   and what is still owed. A child's statement lists every payment by branch with its date, plus upcoming cheques. */
+const BRANCHES = ['شهریه', 'شنا', 'صبحانه و چاشت', 'بیمه ورزشی', 'تابستان', 'سایر'];
+const curMonth = () => TODAY.slice(0, 7);
+const curMonthName = () => MONTHS[+curMonth().slice(5) - 1];
+const payMonth = p => (p.month && jMonth(p.month)) || (normDate(p.date) || '').slice(0, 7) || null;
+function branchOf(p) {
+  const b = BRANCHES.find(x => x !== 'سایر' && same(x, p.category)); if (b) return b;
+  const i = svcOfPayment(p); return i >= 0 ? SVC[i].k : 'سایر';
+}
+function childLedger(c) {
+  const lines = [
+    ...DB.payments.filter(p => p.childId === c.id).map(p => ({ src: 'payments', id: p.id, date: p.date, branch: branchOf(p), label: p.for || p.category || '', method: same(p.method, 'نامشخص') ? '' : p.method || '', amount: +p.amount || 0, month: payMonth(p) })),
+    ...DB.installments.filter(i => i.childId === c.id && isDone(i.status)).map(i => ({ src: 'installments', id: i.id, date: i.doneDate, branch: 'شهریه', label: `${i.type || 'قسط'} ${same(i.type, 'چک') ? 'وصول‌شده' : 'پرداخت‌شده'}${i.due ? ` (سررسید ${jHuman(i.due)})` : ''}`, method: '', amount: +i.amount || 0 })),
+  ].sort(byDateDesc);
+  const by = Object.fromEntries(BRANCHES.map(b => [b, lines.filter(l => l.branch === b)]));
+  const paid = Object.fromEntries(BRANCHES.map(b => [b, sum(by[b], l => l.amount)]));
+  const pend = DB.installments.filter(i => i.childId === c.id && isPending(i.status)).sort((a, b) => (jdnOf(a.due) ?? 1e9) - (jdnOf(b.due) ?? 1e9));
+  const overdue = pend.filter(i => jdnOf(i.due) != null && jdnOf(i.due) < TODAY_JDN);
+  return {
+    lines, by, paid, total: sum(lines, l => l.amount), f: fin(c.id), pend, overdue,
+    mealDue: !!mealOf(c) && !by['صبحانه و چاشت'].some(l => l.month === curMonth()),
+    swimDue: SVC[0].has(c) && !by['شنا'].length,
+  };
+}
+const stLine = l => `<button type="button" class="pay-line" data-open="${l.src}:${esc(l.id)}" title="باز کردن">${l.date ? esc(faDigits(normDate(l.date) || l.date)) : '<span class="muted">بدون تاریخ</span>'} · ${esc(l.label)} · <b class="num">${full(l.amount)}</b>${l.method ? ` · ${esc(l.method)}` : ''}</button>`;
+/* what a child still owes, in words */
+function owesOf(c, L) {
+  const out = [];
+  if (L.f.remaining > 0) out.push(`مانده‌ی شهریه ${full(L.f.remaining)} تومان`);
+  if (L.mealDue) out.push(`${mealOf(c)} ${curMonthName()} پرداخت نشده`);
+  if (L.swimDue) out.push('شنا پرداخت نشده');
+  return out;
+}
+let STMT_BACK = null;   // the window a statement was opened from
+function openStatement(id, back) {
+  syncToday(); computeFin();
+  const c = childById(id); if (!c) return;
+  STMT_BACK = back !== undefined ? back : windowState();
+  const L = childLedger(c), f = L.f, mon = curMonthName(), owes = owesOf(c, L);
+  const label = b => b === 'صبحانه و چاشت' && mealOf(c) ? mealOf(c) : b;
+  const parts = BRANCHES.filter(b => L.paid[b] > 0).map(b => `${esc(label(b))} <b class="num">${full(L.paid[b])}</b>`);
+  const summary = `<b>${esc(c.name)}</b> ${L.total ? `تا امروز <b class="num">${full(L.total)}</b> تومان پرداخت کرده${parts.length ? `: ${parts.join('، ')}` : ''}.` : 'هنوز پرداختی نداشته است.'}
+    ${owes.length ? `<span class="owe">بدهی: ${owes.map(esc).join('؛ ')}.</span>` : isExempt(c) ? 'معاف از شهریه است.' : '<span class="clear">بدهی ندارد.</span>'}`;
+  const secs = BRANCHES.map(b => {
+    const ls = L.by[b], si = SVC.findIndex(x => x.k === b), has = si >= 0 && SVC[si].has(c);
+    if (!ls.length && b !== 'شهریه' && !has) return '';
+    let note = '';
+    if (b === 'شهریه') note = isExempt(c) ? 'معاف از شهریه' : `تعهد ${full(f.expected)} · پرداخت‌شده ${full(f.received)} · <b>مانده ${full(f.remaining)}</b>`;
+    else if (b === 'صبحانه و چاشت' && has) note = `${esc(mealOf(c))} · ${L.mealDue ? pill('warn', `${mon} پرداخت نشده`, '!') : pill('good', `${mon} پرداخت شد`, '✓')}`;
+    else if (has && !ls.length) note = pill('warn', 'پرداختی ثبت نشده', '!');
+    return `<section class="st-sec"><h3><span>${esc(label(b))}</span><span class="num">${full(L.paid[b])} تومان</span><small>${note}</small></h3>
+      ${ls.length ? `<div class="pay-lines">${ls.map(stLine).join('')}</div>` : '<p class="muted">پرداختی ثبت نشده است.</p>'}</section>`;
+  }).join('');
+  const due = sum(L.overdue, i => i.amount), ahead = sum(L.pend, i => i.amount) - due;
+  $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal stmt" role="dialog" aria-modal="true" aria-labelledby="st-title" data-stmt-id="${esc(c.id)}">
+    <button type="button" class="close-x" data-close aria-label="بستن" title="بستن (Esc)">✕</button>
+    <h2 id="st-title">حساب ${esc(c.name)}</h2>
+    <p class="sub">${esc(clsOf(c))} · ${esc(c.group || '')} ${esc(c.attendance || '')} · ${esc(c.payMode || '')}${isActive(c) ? '' : ` · ${esc(c.status || 'غیرفعال')}`}</p>
+    <p class="st-summary">${summary}</p>
+    <div class="rp-cards">
+      <div style="--k:var(--c2)"><span>جمع پرداختی</span><b>${money(L.total)}</b><small>${faNum(L.lines.length)} پرداخت</small></div>
+      <div style="--k:var(--c3)"><span>مانده‌ی شهریه (بدهی)</span><b>${money(f.remaining)}</b><small>${full(f.scheduled)} در چک/قسط · ${full(f.unscheduled)} بدون برنامه</small></div>
+      <div style="--k:var(--c3)"><span>سررسید گذشته</span><b>${money(due)}</b><small>${faNum(L.overdue.length)} چک یا قسط</small></div>
+      <div style="--k:var(--c1)"><span>چک و قسط آینده</span><b>${money(ahead)}</b><small>${faNum(L.pend.length - L.overdue.length)} مورد</small></div>
+    </div>
+    <div class="st-grid">${secs}</div>
+    <section class="rp-sec"><h3>چک‌ها و اقساط در انتظار <small>${faNum(L.pend.length)} مورد</small></h3>
+      ${tableHtml('inst', L.pend, 'چک یا قسط در انتظاری ندارد.', DCOL.inst.filter(x => x.l !== 'کودک'))}</section>
+    <div class="modal-actions"><button type="button" class="btn primary" data-add-for="payments:${esc(c.id)}">+ ثبت دریافت</button><button type="button" class="btn" data-add-for="installments:${esc(c.id)}">+ چک یا قسط</button><button type="button" class="btn" data-open="children:${esc(c.id)}">ویرایش مشخصات</button><button type="button" class="btn" data-print>🖨 چاپ</button><span class="spacer"></span><button type="button" class="btn" data-close>بستن</button></div>
+  </div></div>`;
+  const btn = back === undefined && $('#modal-root [data-close]'); if (btn) btn.focus();
+}
+
+/* the accounts page */
+let ACC_Q = '', ACC_SORT = 'name';
+function accountRows() {
+  return scope().kids.map(c => ({ c, L: childLedger(c) }))
+    .filter(r => !ACC_Q || norm(r.c.name).includes(norm(ACC_Q)) || norm(clsOf(r.c)).includes(norm(ACC_Q)))
+    .sort((a, b) => (isActive(b.c) - isActive(a.c)) || (ACC_SORT === 'debt' ? b.L.f.remaining - a.L.f.remaining : 0) || String(a.c.name).localeCompare(String(b.c.name), 'fa'));
+}
+const ACC_COLS = [
+  { l: 'نام کودک', v: r => `<span class="name">${esc(r.c.name)}</span>${isActive(r.c) ? '' : ` <span class="muted">(${esc(r.c.status || 'غیرفعال')})</span>`}` },
+  { l: 'کلاس', v: r => esc(clsOf(r.c)) },
+  { l: 'شهریه', num: 1, sum: r => r.L.paid['شهریه'], v: r => `${full(r.L.paid['شهریه'])}${r.L.f.expected ? `<small class="muted"> از ${full(r.L.f.expected)}</small>` : ''}` },
+  { l: 'شنا', num: 1, sum: r => r.L.paid['شنا'], v: r => r.L.paid['شنا'] ? full(r.L.paid['شنا']) : r.L.swimDue ? pill('warn', 'پرداخت نشده', '!') : '<span class="muted">—</span>' },
+  { l: 'صبحانه / چاشت', num: 1, sum: r => r.L.paid['صبحانه و چاشت'], v: r => `${r.L.paid['صبحانه و چاشت'] ? full(r.L.paid['صبحانه و چاشت']) : mealOf(r.c) ? '' : '<span class="muted">—</span>'}${mealOf(r.c) ? ` <small class="muted">${esc(mealOf(r.c))}</small>${r.L.mealDue ? ' ' + pill('warn', `${curMonthName()} پرداخت نشده`, '!') : ''}` : ''}` },
+  { l: 'بیمه ورزشی', num: 1, sum: r => r.L.paid['بیمه ورزشی'], v: r => r.L.paid['بیمه ورزشی'] ? full(r.L.paid['بیمه ورزشی']) : '<span class="muted">—</span>' },
+  { l: 'سایر', num: 1, sum: r => r.L.paid['تابستان'] + r.L.paid['سایر'], v: r => r.L.paid['تابستان'] + r.L.paid['سایر'] ? full(r.L.paid['تابستان'] + r.L.paid['سایر']) : '<span class="muted">—</span>' },
+  { l: 'جمع پرداختی', num: 1, sum: r => r.L.total, v: r => `<b>${full(r.L.total)}</b>` },
+  { l: 'بدهی شهریه', num: 1, sum: r => r.L.f.remaining, v: r => r.L.f.remaining ? `<b class="owe">${full(r.L.f.remaining)}</b>` : isExempt(r.c) ? '<span class="muted">معاف</span>' : pill('good', 'تسویه', '✓') },
+];
+function renderAccounts(main) {
+  main.insertAdjacentHTML('beforeend', `<section class="card tbl-block acc-block">
+    <div class="tbl-bar"><h3>حساب کودکان <span class="count" id="acc-count"></span></h3>
+      <input class="search acc-search" type="search" placeholder="جستجوی نام یا کلاس…" value="${esc(ACC_Q)}" aria-label="جستجوی کودک">
+      <span class="seg" role="group" aria-label="مرتب‌سازی"><button type="button" class="opt" data-acc-sort="name" aria-pressed="${ACC_SORT === 'name'}">الفبا</button><button type="button" class="opt" data-acc-sort="debt" aria-pressed="${ACC_SORT === 'debt'}">بیشترین بدهی</button></span></div>
+    <p class="muted acc-help">روی نام هر کودک بزنید تا همه‌ی پرداخت‌هایش با تاریخ، به تفکیک شهریه و خدمات، و بدهی‌اش باز شود.</p>
+    <div class="tbl-scroll"><table><thead><tr>${ACC_COLS.map(c => `<th scope="col"${c.num ? ' class="num"' : ''}>${esc(c.l)}</th>`).join('')}</tr></thead><tbody id="acc-body"></tbody><tfoot id="acc-foot"></tfoot></table></div></section>`);
+  fillAccounts();
+}
+function fillAccounts() {
+  const body = $('#acc-body'); if (!body) return;
+  const rows = accountRows();
+  body.innerHTML = rows.length ? rows.map(r => `<tr data-open="stmt:${esc(r.c.id)}">${ACC_COLS.map(c => `<td class="${c.num ? 'num' : ''}">${c.v(r)}</td>`).join('')}</tr>`).join('')
+    : `<tr class="empty-row"><td colspan="${ACC_COLS.length}">${ACC_Q ? 'کودکی با این نام پیدا نشد.' : 'کودکی ثبت نشده است.'}</td></tr>`;
+  $('#acc-foot').innerHTML = rows.length ? `<tr>${ACC_COLS.map((c, i) => `<td class="num">${i === 0 ? 'جمع' : c.sum ? full(sum(rows, c.sum)) : ''}</td>`).join('')}</tr>` : '';
+  const n = $('#acc-count'); if (n) n.textContent = `${faNum(rows.length)} کودک`;
+}
+
 /* ================= pages ================= */
 const PAGES = [
   { id: 'dashboard', l: 'داشبورد' },
   { id: 'children', l: 'کودکان', ents: ['children'] },
+  { id: 'accounts', l: 'حساب کودکان' },
   { id: 'payments', l: 'دریافت‌ها', ents: ['payments'] },
   { id: 'installments', l: 'چک و اقساط', ents: ['installments'] },
   { id: 'staff', l: 'پرسنل و حقوق', ents: ['staff', 'salaries'] },
@@ -2220,6 +2398,7 @@ function render() {
     metaChips = `<div class="meta"><span class="chip">${esc(weekday(TODAY_JDN))} ${jHuman(TODAY)}</span>${nx ? `<a class="chip" href="#events" style="text-decoration:none">${nx.dated ? `رویداد بعدی: ${esc(nx.e.title)} · ${jHuman(nx.e.date, false)}` : `در انتظار برنامه‌ریزی: ${esc(nx.e.title)}`}</a>` : ''}${fchips.join('')}</div>`;
   }
   main.insertAdjacentHTML('beforeend', `<div class="topbar"><h1>${isDash ? 'نمای کلی مهد' : esc(meta.l)}</h1>${metaChips}<div class="actions">
+      <input class="kid-pick" list="kid-names" type="search" placeholder="🔎 حساب کودک…" aria-label="نام کودک را بنویسید تا حسابش باز شود" autocomplete="off"><datalist id="kid-names">${DB.children.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist>
       <button class="btn report-btn" type="button" data-report title="دریافت‌ها، پرداخت‌ها و سررسیدهای امروز">📋 گزارش روزانه</button>
       <button class="btn primary edit-act" type="button" data-add="payments">+ دریافت جدید</button>
       <button class="btn edit-act" type="button" data-add="installments">+ چک یا قسط</button>
@@ -2234,6 +2413,7 @@ function render() {
     ${CLOUD.on || STORAGE_OK ? '' : '<div class="banner">این مرورگر اجازه‌ی ذخیره‌سازی نمی‌دهد؛ تغییرات با بستن صفحه از بین می‌رود. از «تنظیمات ← دریافت خروجی اکسل» پشتیبان بگیرید.</div>'}`);
   if (isDash) renderDashboard(main);
   else if (page === 'settings') renderSettings(main);
+  else if (page === 'accounts') renderAccounts(main);
   else { main.insertAdjacentHTML('beforeend', meta.ents.map(tableBlock).join('')); meta.ents.forEach(fillTable); }
   main.scrollTop = scrollTop; window.scrollTo(0, winY);
   updateSyncChip();
@@ -2276,7 +2456,9 @@ document.addEventListener('click', e => {
   if (ds.unslice) { PREFS.filters[ds.unslice] = (PREFS.filters[ds.unslice] || []).filter(v => !same(v, ds.v)); savePrefs(); render(); return; }
   if (ds.clear) { PREFS.filters[ds.clear] = []; savePrefs(); render(); return; }
   if (ds.sort) { const ent = t.closest('.tbl-block').dataset.ent, cur = UI.sort[ent] || DEFAULT_SORT[ent] || {}; UI.sort[ent] = { k: ds.sort, dir: cur.k === ds.sort ? -cur.dir : 1 }; fillTable(ent); return; }
-  if (ds.open) { e.preventDefault(); const [ent, id] = ds.open.split(':'); openForm(ent, id); return; }
+  if (ds.open) { e.preventDefault(); const [ent, id] = ds.open.split(':'); if (ent === 'stmt') openStatement(id); else openForm(ent, id); return; }
+  if (ds.print !== undefined) { window.print(); return; }
+  if (ds.accSort) { ACC_SORT = ds.accSort; render(); return; }
   if (ds.today) { const el = document.getElementById(ds.today); if (el) { el.value = TODAY; updateDateHint(el); } return; }
   if (ds.close !== undefined) { closeModal(); return; }
   if (ds.closeBg !== undefined && e.target === t) { closeModal(); return; }
@@ -2302,6 +2484,8 @@ document.addEventListener('click', e => {
 document.addEventListener('submit', e => { if (e.target.id === 'm-form') { e.preventDefault(); submitForm(); } });
 document.addEventListener('input', e => {
   const el = e.target;
+  if (el.classList.contains('acc-search')) { ACC_Q = el.value; fillAccounts(); return; }
+  if (el.classList.contains('kid-pick')) { const c = DB.children.find(k => same(k.name, el.value)); if (c) { el.value = ''; el.blur(); openStatement(c.id); } return; }
   if (el.classList.contains('search')) { const ent = el.closest('.tbl-block').dataset.ent; UI.search[ent] = el.value; fillTable(ent); return; }
   if (MODAL && el.dataset.num === 'money') { const f = F(MODAL.ent, el.id.replace(`f-${MODAL.ent}-`, '')); updateMoneyHint(el.id, f); }
   if (MODAL && el.dataset.dt) updateDateHint(el);
@@ -2324,7 +2508,7 @@ window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer
   if ($('#modal-root').innerHTML) { BOARD_STALE = true; return; }
   render();
 }, 250); });
-window.addEventListener('hashchange', () => { BACK = null; closeModal(); window.scrollTo(0, 0); const m = $('#main'); if (m) m.scrollTop = 0; render(); });
+window.addEventListener('hashchange', () => { BACK = null; STMT_BACK = null; MODAL = null; closeModal(); window.scrollTo(0, 0); const m = $('#main'); if (m) m.scrollTop = 0; render(); });
 
 /* ================= boot ================= */
 function loadSeed(force) {
