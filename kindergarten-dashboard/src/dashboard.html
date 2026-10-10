@@ -547,7 +547,7 @@ function dateFromExcel(v) {
 const AGE = ['نوباوه','پیش‌یک','پیش‌دو'];
 const ATT = ['هرروز','یک‌روزدرمیان'];
 const VOCAB_ALIAS = { 'پیش1': 'پیش‌یک', 'پیش2': 'پیش‌دو', 'یکدرمیان': 'یک‌روزدرمیان', 'روزدرمیان': 'یک‌روزدرمیان', 'یکروزدرمیون': 'یک‌روزدرمیان', 'هرروزه': 'هرروز' };
-const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','تابستان','سایر'];
+const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','سرویس','تابستان','سایر'];
 const METHODS = ['کارت','واریز','اسکناس','نامشخص'];
 const INST_STATUS = ['چک هنوز تحویل نشده','در انتظار سررسید','وصول‌شده','پرداخت‌شده','برگشتی'];
 const isDone = s => ['وصولشده','پرداختشده'].includes(norm(s));
@@ -2188,7 +2188,7 @@ function openReport(p) {
 /* ================= child accounts =================
    «حساب کودکان»: one row per child with what was paid for each branch (tuition, swimming, meals, insurance…)
    and what is still owed. A child's statement lists every payment by branch with its date, plus upcoming cheques. */
-const BRANCHES = ['شهریه', 'شنا', 'صبحانه و چاشت', 'بیمه ورزشی', 'تابستان', 'سایر'];
+const BRANCHES = ['شهریه', 'شنا', 'صبحانه و چاشت', 'بیمه ورزشی', 'سرویس', 'تابستان', 'سایر'];
 const curMonth = () => TODAY.slice(0, 7);
 const curMonthName = () => MONTHS[+curMonth().slice(5) - 1];
 const payMonth = p => (p.month && jMonth(p.month)) || (normDate(p.date) || '').slice(0, 7) || null;
@@ -2274,6 +2274,7 @@ const ACC_COLS = [
   { l: 'شنا', num: 1, sum: r => r.L.paid['شنا'], v: r => r.L.paid['شنا'] ? full(r.L.paid['شنا']) : r.L.swimDue ? pill('warn', 'پرداخت نشده', '!') : '<span class="muted">—</span>' },
   { l: 'صبحانه / چاشت', num: 1, sum: r => r.L.paid['صبحانه و چاشت'], v: r => `${r.L.paid['صبحانه و چاشت'] ? full(r.L.paid['صبحانه و چاشت']) : mealOf(r.c) ? '' : '<span class="muted">—</span>'}${mealOf(r.c) ? ` <small class="muted">${esc(mealOf(r.c))}</small>${r.L.mealDue ? ' ' + pill('warn', `${curMonthName()} پرداخت نشده`, '!') : ''}` : ''}` },
   { l: 'بیمه ورزشی', num: 1, sum: r => r.L.paid['بیمه ورزشی'], v: r => r.L.paid['بیمه ورزشی'] ? full(r.L.paid['بیمه ورزشی']) : '<span class="muted">—</span>' },
+  { l: 'سرویس', num: 1, sum: r => r.L.paid['سرویس'], v: r => r.L.paid['سرویس'] ? full(r.L.paid['سرویس']) : '<span class="muted">—</span>' },
   { l: 'سایر', num: 1, sum: r => r.L.paid['تابستان'] + r.L.paid['سایر'], v: r => r.L.paid['تابستان'] + r.L.paid['سایر'] ? full(r.L.paid['تابستان'] + r.L.paid['سایر']) : '<span class="muted">—</span>' },
   { l: 'جمع پرداختی', num: 1, sum: r => r.L.total, v: r => `<b>${full(r.L.total)}</b>` },
   { l: 'بدهی شهریه', num: 1, sum: r => r.L.f.remaining, v: r => r.L.f.remaining ? `<b class="owe">${full(r.L.f.remaining)}</b>` : isExempt(r.c) ? '<span class="muted">معاف</span>' : pill('good', 'تسویه', '✓') },
