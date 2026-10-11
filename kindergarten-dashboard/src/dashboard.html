@@ -544,8 +544,8 @@ function dateFromExcel(v) {
 }
 
 /* ================= domain vocab ================= */
-const AGE = ['نوباوه','پیش‌یک','پیش‌دو','گیلاس'];
-const ATT = ['هرروز','یک‌روزدرمیان','پنجشنبه‌ها'];
+const AGE = ['نوباوه','پیش‌یک','پیش‌دو','دبستانی'];
+const ATT = ['هرروز','یک‌روزدرمیان','پنجشنبه‌ها','شیفت عصر'];
 const VOCAB_ALIAS = { 'پیش1': 'پیش‌یک', 'پیش2': 'پیش‌دو', 'یکدرمیان': 'یک‌روزدرمیان', 'روزدرمیان': 'یک‌روزدرمیان', 'یکروزدرمیون': 'یک‌روزدرمیان', 'هرروزه': 'هرروز' };
 const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','سرویس','تابستان','سایر'];
 const METHODS = ['کارت','واریز','اسکناس','نامشخص'];
@@ -1184,7 +1184,9 @@ function nextId(ent) {
 const tariffFor = c => DB.tariffs.find(t => same(t.group, c.group) && same(t.attendance, c.attendance));
 const tariffTotal = t => !t ? 0 : (t.total != null ? +t.total : (+t.cash || 0) + (+t.check1 || 0) + (+t.check2 || 0));
 const isExempt = c => norm(c.payMode).includes(norm('معاف'));
-const lacksTariff = c => !isExempt(c) && c.agreedFee == null && !tariffTotal(tariffFor(c));
+/* day-rate tuition (روزشمار) is billed at the end of each month: nothing is owed in advance */
+const isPayg = c => norm(c.payMode).includes(norm('روزشمار'));
+const lacksTariff = c => !isExempt(c) && !isPayg(c) && c.agreedFee == null && !tariffTotal(tariffFor(c));
 const isActive = c => !c.status || same(c.status, 'فعال');
 let FIN = new Map();
 function computeFin() {
@@ -1197,8 +1199,8 @@ function computeFin() {
     else if (isPending(i.status)) sched[i.childId] = (sched[i.childId] || 0) + a;
   }
   for (const c of DB.children) {
-    const expected = isExempt(c) ? 0 : (c.agreedFee != null ? +c.agreedFee : tariffTotal(tariffFor(c)));
     const received = (paid[c.id] || 0) + (done[c.id] || 0);
+    const expected = isExempt(c) ? 0 : isPayg(c) ? received : (c.agreedFee != null ? +c.agreedFee : tariffTotal(tariffFor(c)));
     const remaining = Math.max(0, expected - received);
     const scheduled = Math.min(sched[c.id] || 0, remaining);
     FIN.set(c.id, { expected, paid: paid[c.id] || 0, collected: done[c.id] || 0, received, remaining, scheduled, unscheduled: remaining - scheduled, ratio: expected ? pct(received, expected) : null });
@@ -1747,7 +1749,7 @@ function childFinanceHtml(c) {
   return `<div class="fin">
       <div><span>تعهد شهریه</span><b>${full(f.expected)}</b></div><div><span>دریافت‌شده</span><b>${full(f.received)}</b></div>
       <div><span>در قالب چک/قسط</span><b>${full(f.scheduled)}</b></div><div><span>مانده بدون برنامه</span><b>${full(f.unscheduled)}</b></div></div>
-    <p class="sub">${isExempt(c) ? 'این کودک معاف از شهریه است.' : c.agreedFee != null ? `شهریه‌ی توافقی ثبت شده است${t ? ` (تعرفه: ${full(tariffTotal(t))})` : ''}.` : t ? `طبق تعرفه‌ی ${esc(t.group)} ${esc(t.attendance)}: نقدی ${full(t.cash)} + چک ${full(t.check1)} + چک ${full(t.check2)}` : 'برای این گروه سنی و نوع حضور تعرفه‌ای تعریف نشده است.'}</p>
+    <p class="sub">${isExempt(c) ? 'این کودک معاف از شهریه است.' : isPayg(c) ? 'شهریه روزشمار است و پایان هر ماه دریافت می‌شود.' : c.agreedFee != null ? `شهریه‌ی توافقی ثبت شده است${t ? ` (تعرفه: ${full(tariffTotal(t))})` : ''}.` : t ? `طبق تعرفه‌ی ${esc(t.group)} ${esc(t.attendance)}: نقدی ${full(t.cash)} + چک ${full(t.check1)} + چک ${full(t.check2)}` : 'برای این گروه سنی و نوع حضور تعرفه‌ای تعریف نشده است.'}</p>
     <div class="related"><h4>دریافت‌ها <button class="btn sm" type="button" data-add-for="payments:${esc(c.id)}">+ ثبت دریافت</button></h4>
       ${pays.length ? `<div class="tbl-scroll"><table><tbody>${pays.map(p => `<tr data-open="payments:${esc(p.id)}"><td class="num">${p.date ? esc(faDigits(p.date)) : '<span class="muted">بدون تاریخ</span>'}</td><td>${esc(p.category || '')}</td><td>${esc(p.for || '')}</td><td>${esc(p.method || '')}</td><td class="num">${full(p.amount)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">دریافتی ثبت نشده است.</p>'}</div>
     <div class="related"><h4>چک‌ها و اقساط <button class="btn sm" type="button" data-add-for="installments:${esc(c.id)}">+ ثبت چک یا قسط</button></h4>
@@ -2234,7 +2236,7 @@ function openStatement(id, back) {
     const ls = L.by[b], si = SVC.findIndex(x => x.k === b), has = si >= 0 && SVC[si].has(c);
     if (!ls.length && b !== 'شهریه' && !has) return '';
     let note = '';
-    if (b === 'شهریه') note = isExempt(c) ? 'معاف از شهریه' : `تعهد ${full(f.expected)} · پرداخت‌شده ${full(f.received)} · <b>مانده ${full(f.remaining)}</b>`;
+    if (b === 'شهریه') note = isExempt(c) ? 'معاف از شهریه' : isPayg(c) ? 'روزشمار؛ پایان هر ماه دریافت می‌شود' : `تعهد ${full(f.expected)} · پرداخت‌شده ${full(f.received)} · <b>مانده ${full(f.remaining)}</b>`;
     else if (b === 'صبحانه و چاشت' && has) note = `${esc(mealOf(c))} · ${L.mealDue ? pill('warn', `${mon} پرداخت نشده`, '!') : pill('good', `${mon} پرداخت شد`, '✓')}`;
     else if (has && !ls.length) note = pill('warn', 'پرداختی ثبت نشده', '!');
     return `<section class="st-sec"><h3><span>${esc(label(b))}</span><span class="num">${full(L.paid[b])} تومان</span><small>${note}</small></h3>
