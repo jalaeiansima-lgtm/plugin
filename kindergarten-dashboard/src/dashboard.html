@@ -226,6 +226,7 @@ td:has(>.pay-lines){white-space:normal;min-width:150px}
 .st-summary{font-size:14.5px;line-height:2;margin:4px 0 14px;padding:12px 16px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line)}
 .st-summary .owe,.owe{color:var(--warn)}
 .st-summary .clear{color:var(--good)}
+.st-notes{font-size:13px;line-height:1.9;margin:0 0 10px;color:var(--ink-2)}
 .st-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:14px}
 .st-sec{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
 .st-sec h3{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0 0 8px;font-size:14px}
@@ -547,7 +548,7 @@ function dateFromExcel(v) {
 const AGE = ['نوباوه','پیش‌یک','پیش‌دو','دبستانی'];
 const ATT = ['هرروز','یک‌روزدرمیان','پنجشنبه‌ها','شیفت عصر'];
 const VOCAB_ALIAS = { 'پیش1': 'پیش‌یک', 'پیش2': 'پیش‌دو', 'یکدرمیان': 'یک‌روزدرمیان', 'روزدرمیان': 'یک‌روزدرمیان', 'یکروزدرمیون': 'یک‌روزدرمیان', 'هرروزه': 'هرروز' };
-const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','سرویس','تابستان','مشاوره','سایر'];
+const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','سرویس','موسیقی','تابستان','مشاوره','سایر'];
 const COUNSEL = 'مشاوره';   // private counselling: its own tile, kept out of the receipts-by-category chart
 const METHODS = ['کارت','واریز','اسکناس','نامشخص'];
 const INST_STATUS = ['چک هنوز تحویل نشده','در انتظار سررسید','وصول‌شده','پرداخت‌شده','برگشتی'];
@@ -2213,7 +2214,7 @@ function openReport(p) {
 /* ================= child accounts =================
    «حساب کودکان»: one row per child with what was paid for each branch (tuition, swimming, meals, insurance…)
    and what is still owed. A child's statement lists every payment by branch with its date, plus upcoming cheques. */
-const BRANCHES = ['شهریه', 'شنا', 'صبحانه و چاشت', 'بیمه ورزشی', 'سرویس', 'مشاوره', 'تابستان', 'سایر'];
+const BRANCHES = ['شهریه', 'شنا', 'صبحانه و چاشت', 'بیمه ورزشی', 'سرویس', 'موسیقی', 'مشاوره', 'تابستان', 'سایر'];
 const curMonth = () => TODAY.slice(0, 7);
 const curMonthName = () => MONTHS[+curMonth().slice(5) - 1];
 const payMonth = p => (p.month && jMonth(p.month)) || (normDate(p.date) || '').slice(0, 7) || null;
@@ -2270,6 +2271,7 @@ function openStatement(id, back) {
     <button type="button" class="close-x" data-close aria-label="بستن" title="بستن (Esc)">✕</button>
     <h2 id="st-title">حساب ${esc(c.name)}</h2>
     <p class="sub">${esc(clsOf(c))} · ${esc(c.group || '')} ${esc(c.attendance || '')} · ${esc(c.payMode || '')}${isActive(c) ? '' : ` · ${esc(c.status || 'غیرفعال')}`}</p>
+    ${c.notes ? `<p class="st-notes"><b>توضیحات:</b> ${esc(c.notes)}</p>` : ''}
     <p class="st-summary">${summary}</p>
     <div class="rp-cards">
       <div style="--k:var(--c2)"><span>جمع پرداختی</span><b>${money(L.total)}</b><small>${faNum(L.lines.length)} پرداخت</small></div>
@@ -2287,9 +2289,9 @@ function openStatement(id, back) {
 
 /* the accounts page */
 let ACC_Q = '', ACC_SORT = 'name';
-function accountRows() {
+function accountRows(unfiltered) {   // unfiltered: ignore the search box (the columns stay put while typing)
   return scope().kids.map(c => ({ c, L: childLedger(c) }))
-    .filter(r => !ACC_Q || norm(r.c.name).includes(norm(ACC_Q)) || norm(clsOf(r.c)).includes(norm(ACC_Q)))
+    .filter(r => unfiltered || !ACC_Q || norm(r.c.name).includes(norm(ACC_Q)) || norm(clsOf(r.c)).includes(norm(ACC_Q)))
     .sort((a, b) => (isActive(b.c) - isActive(a.c)) || (ACC_SORT === 'debt' ? b.L.f.remaining - a.L.f.remaining : 0) || String(a.c.name).localeCompare(String(b.c.name), 'fa'));
 }
 const ACC_COLS = [
@@ -2299,9 +2301,8 @@ const ACC_COLS = [
   { l: 'شنا', num: 1, sum: r => r.L.paid['شنا'], v: r => r.L.paid['شنا'] ? full(r.L.paid['شنا']) : r.L.swimDue ? pill('warn', 'پرداخت نشده', '!') : '<span class="muted">—</span>' },
   { l: 'صبحانه / چاشت', num: 1, sum: r => r.L.paid['صبحانه و چاشت'], v: r => `${r.L.paid['صبحانه و چاشت'] ? full(r.L.paid['صبحانه و چاشت']) : mealOf(r.c) ? '' : '<span class="muted">—</span>'}${mealOf(r.c) ? ` <small class="muted">${esc(mealOf(r.c))}</small>${r.L.mealDue ? ' ' + pill('warn', `${curMonthName()} پرداخت نشده`, '!') : ''}` : ''}` },
   { l: 'بیمه ورزشی', num: 1, sum: r => r.L.paid['بیمه ورزشی'], v: r => r.L.paid['بیمه ورزشی'] ? full(r.L.paid['بیمه ورزشی']) : '<span class="muted">—</span>' },
-  { l: 'سرویس', num: 1, sum: r => r.L.paid['سرویس'], v: r => r.L.paid['سرویس'] ? full(r.L.paid['سرویس']) : '<span class="muted">—</span>' },
-  { l: 'مشاوره', num: 1, sum: r => r.L.paid['مشاوره'], v: r => r.L.paid['مشاوره'] ? full(r.L.paid['مشاوره']) : '<span class="muted">—</span>' },
-  { l: 'سایر', num: 1, sum: r => r.L.paid['تابستان'] + r.L.paid['سایر'], v: r => r.L.paid['تابستان'] + r.L.paid['سایر'] ? full(r.L.paid['تابستان'] + r.L.paid['سایر']) : '<span class="muted">—</span>' },
+  ...['سرویس', 'موسیقی', 'مشاوره'].map(b => ({ l: b, num: 1, opt: 1, sum: r => r.L.paid[b], v: r => r.L.paid[b] ? full(r.L.paid[b]) : '<span class="muted">—</span>' })),
+  { l: 'سایر', num: 1, opt: 1, sum: r => r.L.paid['تابستان'] + r.L.paid['سایر'], v: r => r.L.paid['تابستان'] + r.L.paid['سایر'] ? full(r.L.paid['تابستان'] + r.L.paid['سایر']) : '<span class="muted">—</span>' },
   { l: 'جمع پرداختی', num: 1, sum: r => r.L.total, v: r => `<b>${full(r.L.total)}</b>` },
   { l: 'بدهی شهریه', num: 1, sum: r => r.L.f.remaining, v: r => r.L.f.remaining ? `<b class="owe">${full(r.L.f.remaining)}</b>` : isExempt(r.c) ? '<span class="muted">معاف</span>' : lacksTariff(r.c) ? pill('warn', 'تعرفه ندارد', '!') : isPayg(r.c) ? '<span class="muted">روزشمار</span>' : pill('good', 'تسویه', '✓') },
 ];
@@ -2311,15 +2312,17 @@ function renderAccounts(main) {
       <input class="search acc-search" type="search" placeholder="جستجوی نام یا کلاس…" value="${esc(ACC_Q)}" aria-label="جستجوی کودک">
       <span class="seg" role="group" aria-label="مرتب‌سازی"><button type="button" class="opt" data-acc-sort="name" aria-pressed="${ACC_SORT === 'name'}">الفبا</button><button type="button" class="opt" data-acc-sort="debt" aria-pressed="${ACC_SORT === 'debt'}">بیشترین بدهی</button></span></div>
     <p class="muted acc-help">روی نام هر کودک بزنید تا همه‌ی پرداخت‌هایش با تاریخ، به تفکیک شهریه و خدمات، و بدهی‌اش باز شود.</p>
-    <div class="tbl-scroll"><table><thead><tr>${ACC_COLS.map(c => `<th scope="col"${c.num ? ' class="num"' : ''}>${esc(c.l)}</th>`).join('')}</tr></thead><tbody id="acc-body"></tbody><tfoot id="acc-foot"></tfoot></table></div></section>`);
+    <div class="tbl-scroll"><table><thead id="acc-head"></thead><tbody id="acc-body"></tbody><tfoot id="acc-foot"></tfoot></table></div></section>`);
   fillAccounts();
 }
 function fillAccounts() {
   const body = $('#acc-body'); if (!body) return;
-  const rows = accountRows();
-  body.innerHTML = rows.length ? rows.map(r => `<tr data-open="stmt:${esc(r.c.id)}">${ACC_COLS.map(c => `<td class="${c.num ? 'num' : ''}">${c.v(r)}</td>`).join('')}</tr>`).join('')
-    : `<tr class="empty-row"><td colspan="${ACC_COLS.length}">${ACC_Q ? 'کودکی با این نام پیدا نشد.' : 'کودکی ثبت نشده است.'}</td></tr>`;
-  $('#acc-foot').innerHTML = rows.length ? `<tr>${ACC_COLS.map((c, i) => `<td class="num">${i === 0 ? 'جمع' : c.sum ? full(sum(rows, c.sum)) : ''}</td>`).join('')}</tr>` : '';
+  const rows = accountRows(), all = ACC_Q ? accountRows(true) : rows;
+  const cols = ACC_COLS.filter(c => !c.opt || all.some(r => c.sum(r)));
+  $('#acc-head').innerHTML = `<tr>${cols.map(c => `<th scope="col"${c.num ? ' class="num"' : ''}>${esc(c.l)}</th>`).join('')}</tr>`;
+  body.innerHTML = rows.length ? rows.map(r => `<tr data-open="stmt:${esc(r.c.id)}">${cols.map(c => `<td class="${c.num ? 'num' : ''}">${c.v(r)}</td>`).join('')}</tr>`).join('')
+    : `<tr class="empty-row"><td colspan="${cols.length}">${ACC_Q ? 'کودکی با این نام پیدا نشد.' : 'کودکی ثبت نشده است.'}</td></tr>`;
+  $('#acc-foot').innerHTML = rows.length ? `<tr>${cols.map((c, i) => `<td class="num">${i === 0 ? 'جمع' : c.sum ? full(sum(rows, c.sum)) : ''}</td>`).join('')}</tr>` : '';
   const n = $('#acc-count'); if (n) n.textContent = `${faNum(rows.length)} کودک`;
 }
 
