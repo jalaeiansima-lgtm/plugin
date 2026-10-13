@@ -103,7 +103,7 @@ main{min-width:0;height:100%;overflow-y:auto;padding-block:16px 28px;padding-inl
 .kpi .s{font-size:11.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 a.kpi:hover{border-color:var(--line-strong)}
 
-.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;grid-auto-rows:300px}
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;grid-auto-rows:300px;grid-auto-flow:row dense}
 .tile{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px 10px;box-shadow:var(--tile-glow);container-type:size;overflow:hidden}
 .board .w2{grid-column:span 2}
 .tile::before{content:"";position:absolute;inset:-1px -1px auto -1px;height:2px;border-radius:var(--r) var(--r) 0 0;background:linear-gradient(90deg,transparent,var(--tc,var(--c1)),transparent);opacity:.85}
@@ -547,7 +547,8 @@ function dateFromExcel(v) {
 const AGE = ['نوباوه','پیش‌یک','پیش‌دو','دبستانی'];
 const ATT = ['هرروز','یک‌روزدرمیان','پنجشنبه‌ها','شیفت عصر'];
 const VOCAB_ALIAS = { 'پیش1': 'پیش‌یک', 'پیش2': 'پیش‌دو', 'یکدرمیان': 'یک‌روزدرمیان', 'روزدرمیان': 'یک‌روزدرمیان', 'یکروزدرمیون': 'یک‌روزدرمیان', 'هرروزه': 'هرروز' };
-const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','سرویس','تابستان','سایر'];
+const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','سرویس','تابستان','مشاوره','سایر'];
+const COUNSEL = 'مشاوره';   // private counselling: its own tile, kept out of the receipts-by-category chart
 const METHODS = ['کارت','واریز','اسکناس','نامشخص'];
 const INST_STATUS = ['چک هنوز تحویل نشده','در انتظار سررسید','وصول‌شده','پرداخت‌شده','برگشتی'];
 const isDone = s => ['وصولشده','پرداختشده'].includes(norm(s));
@@ -1439,6 +1440,7 @@ const TILE_LIST = [
   { id: 'classes', l: 'کودکان هر کلاس' },
   { id: 'ageAtt', l: 'گروه سنی و نوع حضور' },
   { id: 'services', l: 'خدمات جانبی' },
+  { id: 'counsel', l: 'مشاوره‌ی خصوصی' },
   { id: 'tuition', l: 'ترکیب تعهد شهریه' },
   { id: 'staff', l: 'پرسنل' },
   { id: 'dues', l: 'سررسید چک و اقساط' },
@@ -1492,7 +1494,7 @@ function dashModel() {
     days, dailyVals: days.map(d => byDay[d] || 0),
     undated: receipts.filter(r => jdnOf(r.date) == null), future: receipts.filter(r => { const d = jdnOf(r.date); return d != null && d > TODAY_JDN; }),
     months, dueChk: months.map(m => sum(dated.filter(i => monthOfDue(i) === m && same(i.type, 'چک')), i => i.amount)), dueCash: months.map(m => sum(dated.filter(i => monthOfDue(i) === m && !same(i.type, 'چک')), i => i.amount)),
-    catVals, catTotal: sum(catVals, v => v), methods, methVals,
+    catVals, catTotal: sum(catVals.filter((v, i) => PAY_CATS[i] !== COUNSEL), v => v), methods, methVals,
     classes: uniq(active.map(clsOf)).map(cl => ({ cl, n: active.filter(c => same(clsOf(c), cl)).length })).sort((a, b) => b.n - a.n),
     groups: uniq([...AGE, ...active.map(c => c.group)]).filter(g => active.some(c => same(c.group, g))),
     costMonths, salByM: costMonths.map(m => sum(DB.salaries.filter(s => salKey(s) === m), s => s.amount)), expByM: costMonths.map(m => sum(DB.expenses.filter(e => (normDate(e.date) || '').startsWith(m)), e => e.amount)),
@@ -1533,7 +1535,7 @@ function buildTiles(M, t) {
         datasets: [{ label: 'دریافتی', data: M.dailyVals, borderColor: lineGrad(C[0], C[2]), backgroundColor: areaGrad(C[2]), fill: 'origin', tension: .38, borderWidth: 2.5,
           pointRadius: M.dailyVals.map(v => v ? 3 : 0), pointHoverRadius: 5, pointBackgroundColor: '#fff', pointBorderColor: C[2], pointBorderWidth: 2, glow: C[2] }] }, options: o };
     } });
-  const catItems = PAY_CATS.map((l, i) => ({ l, v: M.catVals[i], c: i < 5 ? C[i] : t.neutral })).filter(x => x.v > 0);
+  const catItems = PAY_CATS.map((l, i) => ({ l, v: M.catVals[i], c: i < 5 ? C[i] : t.neutral })).filter(x => x.v > 0 && x.l !== COUNSEL);
   T.push({ id: 'category', t: 'دریافت به تفکیک دسته', sub: 'میلیون تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[0],
     empty: M.catTotal ? '' : none('دریافتی ثبت نشده است.'), center: moneyCenter(M.catTotal, 'کل'), side: lgHtml(catItems, m1),
     cfg: () => donutCfg(t, catItems.map(x => x.l), catItems.map(x => x.v), catItems.map(x => x.c), { money: true }) });
@@ -1554,7 +1556,7 @@ function buildTiles(M, t) {
       options: baseOpts(t, { horizontal: true, stacked: true, labels: true, unit: 'کودک', grace: '16%' }) }) });
   const svc = SVC.map((x, i) => ({ l: x.bar || x.k, k: x.k, v: serviceRows(M, i).length }));   // same rule as the list behind each bar
   // one price per service: «صبحانه و چاشت ۱٫۸–۳٫۶ میلیون»
-  const prices = Object.create(null); for (const s of DB.services) { const l = String(s.title || '').replace(/\s*\(.*\)\s*$/, '').trim(), k = norm(l); if (!k || s.amount == null) continue; (prices[k] = prices[k] || { l, a: [] }).a.push(+s.amount); }
+  const prices = Object.create(null); for (const s of DB.services) { const l = String(s.title || '').replace(/\s*\(.*\)\s*$/, '').trim(), k = norm(l); if (!k || s.amount == null || k.includes(norm(COUNSEL))) continue; (prices[k] = prices[k] || { l, a: [] }).a.push(+s.amount); }
   const priceNote = Object.values(prices).map(({ l: k, a }) => { const lo = Math.min(...a), hi = Math.max(...a); return `${k} ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`}`; }).join(' · ');
   T.push({ id: 'services', t: 'خدمات جانبی', sub: `از ${faNum(M.active.length)} کودک فعال`, sheet: 'خدمات', page: 'tariffs', tc: C[1], note: priceNote,
     empty: M.active.length ? '' : none('کودک فعالی ثبت نشده است.'),
@@ -1562,6 +1564,15 @@ function buildTiles(M, t) {
       const o = baseOpts(t, { horizontal: true, labels: true, unit: 'نفر', grace: '30%', labelFmt: v => `${faNum(v)} نفر` });
       o.plugins.tooltip.callbacks.footer = items => { const pr = prices[norm(svc[items[0].dataIndex].k)], a = pr && pr.a; if (!a) return ''; const lo = Math.min(...a), hi = Math.max(...a); return `قیمت: ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`} تومان`; };
       return { type: 'bar', data: { labels: svc.map(x => x.l), datasets: [barDs('تعداد', svc.map(x => x.v), C[1], hGrad(C[1]))] }, options: o };
+    } });
+  const cs = counselRows(M), rate = counselRate(), csN = sum(cs, x => x.n || 0), renew = DB.events.find(e => norm(e.title).includes(norm(COUNSEL)) && jdnOf(e.date) != null && jdnOf(e.date) >= TODAY_JDN);
+  T.push({ id: 'counsel', t: 'مشاوره‌ی خصوصی', sub: rate ? `جلسه · هر ساعت ${money(rate)}` : 'تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[3],
+    note: [cs.length ? `${faNum(cs.length)} کودک · ${rate ? `${faNum(csN)} جلسه · ` : ''}${money(sum(cs, x => x.amt))}` : '', renew ? `تمدید: ${jHuman(renew.date, false)}` : ''].filter(Boolean).join(' · '),
+    empty: cs.length ? '' : none('هنوز جلسه‌ی مشاوره‌ای ثبت نشده است.'),
+    cfg: () => {
+      const o = baseOpts(t, { horizontal: true, labels: true, unit: rate ? 'جلسه' : 'تومان', grace: '30%', labelFmt: v => rate ? `${faNum(v)} جلسه` : money(v) });
+      o.plugins.tooltip.callbacks.footer = items => `پرداخت: ${money(cs[items[0].dataIndex].amt)}`;
+      return { type: 'bar', data: { labels: cs.map(x => x.l), datasets: [barDs(rate ? 'جلسه' : 'مبلغ', cs.map(x => rate ? x.n : x.amt), C[3], hGrad(C[3]))] }, options: o };
     } });
   const tuItems = [{ l: 'دریافت‌شده', v: M.tot.collected, c: C[0] }, { l: 'چک و قسط', v: M.tot.scheduled, c: C[1] }, { l: 'بی‌برنامه', v: M.tot.unscheduled, c: C[2] }];
   T.push({ id: 'tuition', t: 'ترکیب تعهد شهریه', sub: `میلیون تومان · از ${money(M.tot.expected)}`, sheet: 'کودکان', page: 'children', tc: C[2],
@@ -2019,6 +2030,13 @@ const SVC = [
   { k: 'صبحانه و چاشت', has: c => !!mealOf(c), monthly: true, words: ['صبحانه', 'چاشت'] },
   { k: 'بیمه ورزشی', bar: 'بیمه (پرداخت‌شده)', has: c => same(c.insurance, 'دریافت شد'), words: ['بیمه'] },
 ];
+/* private counselling sessions: hours bought = amount ÷ the hourly rate in «خدمات» */
+function counselRate() { const s = DB.services.find(x => norm(x.title).includes(norm(COUNSEL)) && +x.amount > 0); return s ? +s.amount : null; }
+function counselRows(M) {
+  const rate = counselRate(), ps = M.S.payments.filter(p => same(p.category, COUNSEL));
+  return uniq(ps.map(p => p.childId)).map(id => { const amt = sum(ps.filter(p => p.childId === id), p => p.amount); return { id, l: childById(id)?.name || id, amt, n: rate ? Math.round(amt / rate) : null }; })
+    .sort((a, b) => b.amt - a.amt);
+}
 function svcOfPayment(p) {
   const i = SVC.findIndex(x => same(x.k, p.category)); if (i >= 0) return i;
   if (p.category && !same(p.category, 'سایر')) return -1;   // tuition, summer… are not side services
@@ -2063,11 +2081,15 @@ function tileDetail(id, M, sel) {
       if (sel) rows = rows.filter(r => jdnOf(r.date) === sel.day);
       return { kind: 'receipt', title: 'دریافت‌های ۳۰ روز اخیر', rows: rows.sort(byDateDesc) };
     }
-    case 'category': { let rows = receiptRows(S); if (sel) rows = rows.filter(r => sel.cat === 'سایر' ? !PAY_CATS.slice(0, -1).some(c => same(c, r.category)) : same(r.category, sel.cat)); return { kind: 'receipt', title: 'همه‌ی دریافت‌ها', rows: rows.sort(byDateDesc) }; }
+    case 'category': { let rows = receiptRows(S).filter(r => !same(r.category, COUNSEL)); if (sel) rows = rows.filter(r => sel.cat === 'سایر' ? !PAY_CATS.slice(0, -1).some(c => same(c, r.category)) : same(r.category, sel.cat)); return { kind: 'receipt', title: 'همه‌ی دریافت‌ها', rows: rows.sort(byDateDesc) }; }
     case 'method': { let rows = receiptRows(S); if (sel) rows = rows.filter(r => same(r.method, sel.method)); return { kind: 'receipt', title: 'همه‌ی دریافت‌ها', rows: rows.sort(byDateDesc) }; }
     case 'rings': return { kind: 'rings', sumCol: 'تعهد شهریه', title: 'شهریه، بیمه و چک کودکان فعال · بیشترین مانده اول', rows: kids.sort(byRemaining) };
     case 'classes': { let rows = kids; if (sel) rows = rows.filter(c => same(clsOf(c), sel.cls)); return { kind: 'roster', title: 'کودکان فعال', rows: rows.sort((a, b) => String(clsOf(a)).localeCompare(String(clsOf(b)), 'fa') || String(a.name).localeCompare(String(b.name), 'fa')) }; }
     case 'ageAtt': { let rows = kids; if (sel) rows = rows.filter(c => same(c.group, sel.group) && (!sel.att || same(c.attendance, sel.att))); return { kind: 'roster', title: 'کودکان فعال', rows: rows.sort((a, b) => String(a.name).localeCompare(String(b.name), 'fa')) }; }
+    case 'counsel': {
+      let rows = receiptRows(S).filter(r => same(r.category, COUNSEL)); if (sel) rows = rows.filter(r => r.childId === sel.id);
+      return { kind: 'receipt', title: 'پرداخت‌های مشاوره‌ی خصوصی', rows: rows.sort(byDateDesc) };
+    }
     case 'services': {
       const only = sel ? sel.i : null;
       return { kind: 'service', cols: serviceCols(only), title: only == null ? 'کودکان و خدمات جانبی‌شان' : `کودکان دارای ${SVC[only].k} و پرداخت‌هایشان`, rows: serviceRows(M, only) };
@@ -2087,11 +2109,12 @@ function tileDetail(id, M, sel) {
 }
 /* what a click on bar/slice #index (dataset #ds) of a tile's chart selects */
 function tilePick(id, M, index, ds) {
-  const catItems = PAY_CATS.map((l, i) => ({ l, v: M.catVals[i] })).filter(x => x.v > 0);
+  const catItems = PAY_CATS.map((l, i) => ({ l, v: M.catVals[i] })).filter(x => x.v > 0 && x.l !== COUNSEL);
   const methItems = M.methods.map((l, i) => ({ l, v: M.methVals[i] })).filter(x => x.v > 0);
   switch (id) {
     case 'trend': { const day = M.days[index]; return day == null ? null : { day, label: `${weekday(day)} ${jHuman(fromJdn(day))}` }; }
     case 'category': { const x = catItems[index]; return x ? { cat: x.l, label: x.l } : null; }
+    case 'counsel': { const x = counselRows(M)[index]; return x ? { id: x.id, label: x.l } : null; }
     case 'method': { const x = methItems[index]; return x ? { method: x.l, label: x.l } : null; }
     case 'classes': { const x = M.classes[index]; return x ? { cls: x.cl, label: `کلاس ${x.cl}` } : null; }
     case 'ageAtt': { const g = M.groups[index], a = M.atts[ds]; return g ? { group: g, att: a, label: `${g}${a ? ' · ' + a : ''}` } : null; }
@@ -2190,7 +2213,7 @@ function openReport(p) {
 /* ================= child accounts =================
    «حساب کودکان»: one row per child with what was paid for each branch (tuition, swimming, meals, insurance…)
    and what is still owed. A child's statement lists every payment by branch with its date, plus upcoming cheques. */
-const BRANCHES = ['شهریه', 'شنا', 'صبحانه و چاشت', 'بیمه ورزشی', 'سرویس', 'تابستان', 'سایر'];
+const BRANCHES = ['شهریه', 'شنا', 'صبحانه و چاشت', 'بیمه ورزشی', 'سرویس', 'مشاوره', 'تابستان', 'سایر'];
 const curMonth = () => TODAY.slice(0, 7);
 const curMonthName = () => MONTHS[+curMonth().slice(5) - 1];
 const payMonth = p => (p.month && jMonth(p.month)) || (normDate(p.date) || '').slice(0, 7) || null;
@@ -2231,7 +2254,7 @@ function openStatement(id, back) {
   const label = b => b === 'صبحانه و چاشت' && mealOf(c) ? mealOf(c) : b;
   const parts = BRANCHES.filter(b => L.paid[b] > 0).map(b => `${esc(label(b))} <b class="num">${full(L.paid[b])}</b>`);
   const summary = `<b>${esc(c.name)}</b> ${L.total ? `تا امروز <b class="num">${full(L.total)}</b> تومان پرداخت کرده${parts.length ? `: ${parts.join('، ')}` : ''}.` : 'هنوز پرداختی نداشته است.'}
-    ${owes.length ? `<span class="owe">بدهی: ${owes.map(esc).join('؛ ')}.</span>` : isExempt(c) ? 'معاف از شهریه است.' : '<span class="clear">بدهی ندارد.</span>'}`;
+    ${owes.length ? `<span class="owe">بدهی: ${owes.map(esc).join('؛ ')}.</span>` : isExempt(c) ? 'معاف از شهریه است.' : lacksTariff(c) ? '<span class="owe">برای گروه سنی و نوع حضورش تعرفه ثبت نشده، پس بدهی‌اش حساب نمی‌شود.</span>' : '<span class="clear">بدهی ندارد.</span>'}`;
   const secs = BRANCHES.map(b => {
     const ls = L.by[b], si = SVC.findIndex(x => x.k === b), has = si >= 0 && SVC[si].has(c);
     if (!ls.length && b !== 'شهریه' && !has) return '';
@@ -2277,9 +2300,10 @@ const ACC_COLS = [
   { l: 'صبحانه / چاشت', num: 1, sum: r => r.L.paid['صبحانه و چاشت'], v: r => `${r.L.paid['صبحانه و چاشت'] ? full(r.L.paid['صبحانه و چاشت']) : mealOf(r.c) ? '' : '<span class="muted">—</span>'}${mealOf(r.c) ? ` <small class="muted">${esc(mealOf(r.c))}</small>${r.L.mealDue ? ' ' + pill('warn', `${curMonthName()} پرداخت نشده`, '!') : ''}` : ''}` },
   { l: 'بیمه ورزشی', num: 1, sum: r => r.L.paid['بیمه ورزشی'], v: r => r.L.paid['بیمه ورزشی'] ? full(r.L.paid['بیمه ورزشی']) : '<span class="muted">—</span>' },
   { l: 'سرویس', num: 1, sum: r => r.L.paid['سرویس'], v: r => r.L.paid['سرویس'] ? full(r.L.paid['سرویس']) : '<span class="muted">—</span>' },
+  { l: 'مشاوره', num: 1, sum: r => r.L.paid['مشاوره'], v: r => r.L.paid['مشاوره'] ? full(r.L.paid['مشاوره']) : '<span class="muted">—</span>' },
   { l: 'سایر', num: 1, sum: r => r.L.paid['تابستان'] + r.L.paid['سایر'], v: r => r.L.paid['تابستان'] + r.L.paid['سایر'] ? full(r.L.paid['تابستان'] + r.L.paid['سایر']) : '<span class="muted">—</span>' },
   { l: 'جمع پرداختی', num: 1, sum: r => r.L.total, v: r => `<b>${full(r.L.total)}</b>` },
-  { l: 'بدهی شهریه', num: 1, sum: r => r.L.f.remaining, v: r => r.L.f.remaining ? `<b class="owe">${full(r.L.f.remaining)}</b>` : isExempt(r.c) ? '<span class="muted">معاف</span>' : pill('good', 'تسویه', '✓') },
+  { l: 'بدهی شهریه', num: 1, sum: r => r.L.f.remaining, v: r => r.L.f.remaining ? `<b class="owe">${full(r.L.f.remaining)}</b>` : isExempt(r.c) ? '<span class="muted">معاف</span>' : lacksTariff(r.c) ? pill('warn', 'تعرفه ندارد', '!') : isPayg(r.c) ? '<span class="muted">روزشمار</span>' : pill('good', 'تسویه', '✓') },
 ];
 function renderAccounts(main) {
   main.insertAdjacentHTML('beforeend', `<section class="card tbl-block acc-block">
