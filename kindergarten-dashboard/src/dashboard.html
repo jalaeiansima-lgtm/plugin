@@ -347,14 +347,14 @@ body.bulk #app,body.bulk #modal-root{pointer-events:none;opacity:.55}
   .topbar .meta .chip{white-space:nowrap;flex:none}
   main.fit{display:flex;flex-direction:column;padding-block:12px}
   main.fit .dash{flex:1;min-height:0}
-  main.fit .board{flex:1;min-height:0;grid-template-columns:repeat(var(--cols,5),minmax(0,1fr));grid-template-rows:repeat(var(--rows,3),minmax(165px,1fr));grid-auto-rows:minmax(165px,1fr)}
+  main.fit .board{flex:1;min-height:0;grid-template-columns:repeat(var(--cols,5),minmax(0,1fr));grid-template-rows:repeat(var(--rows,3),minmax(var(--rowmin,165px),1fr));grid-auto-rows:minmax(var(--rowmin,165px),1fr)}
 }
 /* presentation on a projector without the rail: still one page down to 900px wide */
 @media (min-width:900px) and (min-height:560px){
   #app.present main.fit{display:flex;flex-direction:column;padding-block:12px}
   #app.present main.fit .dash{flex:1;min-height:0}
   #app.present .kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
-  #app.present main.fit .board{flex:1;min-height:0;grid-template-columns:repeat(var(--cols,5),minmax(0,1fr));grid-template-rows:repeat(var(--rows,3),minmax(150px,1fr));grid-auto-rows:minmax(150px,1fr)}
+  #app.present main.fit .board{flex:1;min-height:0;grid-template-columns:repeat(var(--cols,5),minmax(0,1fr));grid-template-rows:repeat(var(--rows,3),minmax(var(--rowmin,150px),1fr));grid-auto-rows:minmax(var(--rowmin,150px),1fr)}
   #app.present .board .w2{grid-column:span 2}
 }
 /* shorter windows (laptops with browser chrome): tighten the chrome around the board */
@@ -549,7 +549,8 @@ const AGE = ['نوباوه','پیش‌یک','پیش‌دو','دبستانی'];
 const ATT = ['هرروز','یک‌روزدرمیان','پنجشنبه‌ها','شیفت عصر'];
 const VOCAB_ALIAS = { 'پیش1': 'پیش‌یک', 'پیش2': 'پیش‌دو', 'یکدرمیان': 'یک‌روزدرمیان', 'روزدرمیان': 'یک‌روزدرمیان', 'یکروزدرمیون': 'یک‌روزدرمیان', 'هرروزه': 'هرروز' };
 const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','سرویس','موسیقی','تابستان','مشاوره','سایر'];
-const COUNSEL = 'مشاوره';   // private counselling: its own tile, kept out of the receipts-by-category chart
+const COUNSEL = 'مشاوره';
+const PM_SHIFT = 'شیفت عصر';   // afternoon shift: its own tile   // private counselling: its own tile, kept out of the receipts-by-category chart
 const METHODS = ['کارت','واریز','اسکناس','نامشخص'];
 const INST_STATUS = ['چک هنوز تحویل نشده','در انتظار سررسید','وصول‌شده','پرداخت‌شده','برگشتی'];
 const isDone = s => ['وصولشده','پرداختشده'].includes(norm(s));
@@ -611,6 +612,7 @@ const SCHEMA = {
     { k: 'due', h: 'تاریخ سررسید', type: 'date' },
     { k: 'checkNo', h: 'شماره چک' },
     { k: 'bank', h: 'بانک', type: 'combo', opts: () => uniq(['ملی','ملت','پارسیان','سامان','تجارت','صادرات','پاسارگاد', ...DB.installments.map(i => i.bank)]) },
+    { k: 'keeper', h: 'چک نزد', type: 'combo', hint: 'چک تا روز سررسید پیش چه کسی است', opts: () => uniq(['سارا', ...DB.installments.map(i => i.keeper)]) },
     { k: 'sayad', h: 'وضعیت صیاد', type: 'combo', opts: () => ['ثبت‌شده، تأیید نشده','تأیید شده'] },
     { k: 'status', h: 'وضعیت', type: 'select', opts: () => INST_STATUS, def: 'در انتظار سررسید' },
     { k: 'doneDate', h: 'تاریخ وصول/پرداخت', type: 'date' },
@@ -1283,7 +1285,7 @@ const COLS = {
   installments: () => [
     fieldCol('installments', 'id', 'کد'), fieldCol('installments', 'childId'), fieldCol('installments', 'type'), fieldCol('installments', 'amount'), fieldCol('installments', 'due', 'سررسید'),
     { k: 'left', l: 'زمان', cell: r => ({ html: isPending(r.status) ? daysPill(r.due) : '<span class="muted">—</span>', sort: isPending(r.status) ? (jdnOf(r.due) ?? 1e9) : 2e9 }) },
-    fieldCol('installments', 'status'), fieldCol('installments', 'checkNo'), fieldCol('installments', 'bank'), fieldCol('installments', 'doneDate', 'تاریخ وصول'),
+    fieldCol('installments', 'status'), fieldCol('installments', 'checkNo'), fieldCol('installments', 'bank'), fieldCol('installments', 'keeper', 'نزد'), fieldCol('installments', 'doneDate', 'تاریخ وصول'),
     { k: 'act', l: '', cell: r => ({ html: isPending(r.status) ? `<button class="btn sm" data-collect="${esc(r.id)}">${same(r.type, 'چک') ? 'ثبت وصول' : 'ثبت پرداخت'}</button>` : '', sort: 0 }) },
   ],
 };
@@ -1442,6 +1444,7 @@ const TILE_LIST = [
   { id: 'ageAtt', l: 'گروه سنی و نوع حضور' },
   { id: 'services', l: 'خدمات جانبی' },
   { id: 'counsel', l: 'مشاوره‌ی خصوصی' },
+  { id: 'afternoon', l: 'شیفت عصر' },
   { id: 'tuition', l: 'ترکیب تعهد شهریه' },
   { id: 'staff', l: 'پرسنل' },
   { id: 'dues', l: 'سررسید چک و اقساط' },
@@ -1566,6 +1569,14 @@ function buildTiles(M, t) {
       o.plugins.tooltip.callbacks.footer = items => { const pr = prices[norm(svc[items[0].dataIndex].k)], a = pr && pr.a; if (!a) return ''; const lo = Math.min(...a), hi = Math.max(...a); return `قیمت: ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`} تومان`; };
       return { type: 'bar', data: { labels: svc.map(x => x.l), datasets: [barDs('تعداد', svc.map(x => x.v), C[1], hGrad(C[1]))] }, options: o };
     } });
+  const pm = shiftRows(M);
+  T.push({ id: 'afternoon', t: 'شیفت عصر', sub: `${faNum(pm.length)} نفر · میلیون تومان`, sheet: 'کودکان', page: 'children', tc: C[4],
+    note: pm.length ? `جمع پرداختی ${money(sum(pm, x => x.paid))}${pm.some(x => isPayg(x.c)) ? ' · روزشمار، پایان هر ماه' : ''}` : '',
+    empty: pm.length ? '' : none('هنوز کودکی در شیفت عصر ثبت نشده است.'),
+    cfg: () => {
+      const o = baseOpts(t, { horizontal: true, labels: true, unit: 'تومان', grace: '30%', labelFmt: v => v ? money(v) : 'بدون پرداخت' });
+      return { type: 'bar', data: { labels: pm.map(x => x.c.name), datasets: [barDs('پرداختی', pm.map(x => x.paid), C[4], hGrad(C[4]))] }, options: o };
+    } });
   const cs = counselRows(M), rate = counselRate(), csN = sum(cs, x => x.n || 0), renew = DB.events.find(e => norm(e.title).includes(norm(COUNSEL)) && jdnOf(e.date) != null && jdnOf(e.date) >= TODAY_JDN);
   T.push({ id: 'counsel', t: 'مشاوره‌ی خصوصی', sub: rate ? `جلسه · هر ساعت ${money(rate)}` : 'تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[3],
     note: [cs.length ? `${faNum(cs.length)} کودک · ${rate ? `${faNum(csN)} جلسه · ` : ''}${money(sum(cs, x => x.amt))}` : '', renew ? `تمدید: ${jHuman(renew.date, false)}` : ''].filter(Boolean).join(' · '),
@@ -1616,7 +1627,7 @@ function tileHtml(d, prefix, inModal) {
   else if (d.kind === 'html') body = d.html;
   else if (!window.Chart) body = '<div class="empty">کتابخانه‌ی نمودار بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.</div>';
   else body = `<div class="cv"><canvas id="${prefix}${d.id}" role="img" aria-label="${esc(d.t)}"></canvas>${d.center ? `<div class="center">${d.center}</div>` : ''}</div>${d.side || ''}`;
-  return `<section class="tile${d.span === 2 && !inModal ? ' w2' : ''}" style="--tc:${d.tc}" data-tile="${d.id}">
+  return `<section class="tile${d.span === 2 && !inModal ? ' w2' : ''}" style="--tc:${d.tc}${d.span > 2 && !inModal ? `;grid-column:span ${d.span}` : ''}" data-tile="${d.id}">
     <header><h3>${esc(d.t)}</h3><span class="sub">${esc(d.sub || '')}</span><span class="tools"><span class="sheet" title="شیت اکسل">${esc(d.sheet)}</span>
       ${PRESENT ? '' : `<a class="icon-btn edit-link" href="#${d.page}" title="ویرایش اطلاعات ${esc(d.sheet)}" aria-label="ویرایش اطلاعات ${esc(d.sheet)}">${ICON_EDIT}</a>`}
       ${inModal ? '' : `<button class="icon-btn" type="button" data-max="${d.id}" title="بزرگ‌نمایی" aria-label="بزرگ‌نمایی ${esc(d.t)}">${ICON_MAX}</button>`}</span></header>
@@ -1645,6 +1656,19 @@ function kpiHtml(M, C) {
   </div>`;
 }
 /* columns for the visible tiles: fill whole rows, at most 3 rows when possible */
+/* lay tiles out row by row; a row that cannot take the next tile is filled by widening its own tiles,
+   so the board never has holes and no tile is pushed below the screen */
+function packBoard(defs, cols) {
+  let row = [], used = 0, rows = 0;
+  const close = () => {
+    if (!row.length) return;
+    for (let free = cols - used, i = row.length - 1; free > 0; free--, i = i > 0 ? i - 1 : row.length - 1) row[i].span = (row[i].span || 1) + 1;
+    rows++; row = []; used = 0;
+  };
+  for (const d of defs) { d.span = Math.min(d.span || 1, cols); if (used + d.span > cols) close(); row.push(d); used += d.span; }
+  close();
+  return rows;
+}
 function boardShape(defs, width) {
   const slots = sum(defs, d => d.span || 1), maxCols = width ? Math.max(1, Math.min(5, Math.floor((width + 12) / (PRESENT ? 176 : 202)))) : 5;
   let best = { cols: 1, rows: slots, score: Infinity };
@@ -1667,13 +1691,11 @@ function renderDashboard(main) {
   const fit = fitBoard(), slots = sum(defs, d => d.span || 1);
   const { cols, rows } = fit ? boardShape(defs, main.clientWidth - 28) : { cols: cssCols(), rows: Math.ceil(slots / cssCols()) };
   BOARD_COLS = cols; BOARD_SIG = boardSig(main); BOARD_STALE = false;
+  let rowsUsed = rows;
   if (cols < 2) defs.forEach(d => { d.span = 1; });
-  else { // widen tiles from the end so the last row has no empty cells
-    let free = rows * cols - sum(defs, d => d.span || 1);
-    for (let i = defs.length - 1; i >= 0 && free > 0; i--) if ((defs[i].span || 1) === 1) { defs[i].span = 2; free--; }
-  }
+  else rowsUsed = packBoard(defs, cols);
   main.insertAdjacentHTML('beforeend', `<div class="dash">${shown('kpis') ? kpiHtml(M, t.c) : ''}
-    <div class="board" style="--cols:${cols};--rows:${rows}">${defs.length ? defs.map(d => tileHtml(d, 'ch-')).join('') : '<div class="empty" style="grid-column:1/-1">همه‌ی نمودارها خاموش‌اند. از «تنظیمات» نمودارهای دلخواه را روشن کنید.</div>'}</div></div>`);
+    <div class="board" style="--cols:${cols};--rows:${rowsUsed}${rowsUsed >= 4 ? ';--rowmin:128px' : ''}">${defs.length ? defs.map(d => tileHtml(d, 'ch-')).join('') : '<div class="empty" style="grid-column:1/-1">همه‌ی نمودارها خاموش‌اند. از «تنظیمات» نمودارهای دلخواه را روشن کنید.</div>'}</div></div>`);
   drawTiles(defs, 'ch-');
   return M;
 }
@@ -1972,6 +1994,13 @@ const DCOL = {
     { l: 'روش / پرداخت‌کننده', v: r => esc(r.method || '') },
     { l: 'مبلغ (تومان)', v: r => full(r.amount), num: true, sum: r => r.amount },
   ],
+  shift: [
+    { l: 'نام کودک', v: r => `<span class="name">${esc(r.c.name)}</span>` },
+    { l: 'کلاس', v: r => esc(clsOf(r.c)) },
+    { l: 'نحوه‌ی پرداخت', v: r => esc(r.c.payMode || '') },
+    { l: 'پرداخت‌ها', v: r => r.pays.length ? `<div class="pay-lines">${r.pays.slice().sort(byDateDesc).map(payLine).join('')}</div>` : pill('warn', 'پرداختی ثبت نشده', '!') },
+    { l: 'جمع (تومان)', v: r => full(r.paid), num: true, sum: r => r.paid },
+  ],
   // who is in which class / age group: names only, no money
   roster: [
     { l: 'نام', v: c => `<span class="name">${esc(c.name)}</span>` },
@@ -2002,7 +2031,7 @@ const DCOL = {
     { l: 'نوع', v: i => esc(i.type || '') },
     { l: 'سررسید', v: i => i.due ? esc(jHuman(i.due)) : '<span class="muted">بدون تاریخ</span>' },
     { l: 'زمان', v: i => isPending(i.status) ? daysPill(i.due) : '<span class="muted">—</span>' },
-    { l: 'وضعیت', v: i => statusPill('installments', 'status', i.status) },
+    { l: 'وضعیت', v: i => `${statusPill('installments', 'status', i.status)}${i.keeper && isPending(i.status) ? ` <small class="muted">نزد ${esc(i.keeper)}</small>` : ''}` },
     { l: 'مبلغ (تومان)', v: i => i.amount == null ? '<span class="muted">نامشخص</span>' : full(i.amount), num: true, sum: i => i.amount },
     { l: '', v: i => isPending(i.status) ? `<button class="btn sm" type="button" data-collect="${esc(i.id)}">${same(i.type, 'چک') ? 'ثبت وصول' : 'ثبت پرداخت'}</button>` : '' },
   ],
@@ -2021,7 +2050,7 @@ const DCOL = {
     { l: 'وضعیت', v: e => eventPill(e.status) }, { l: 'بودجه', v: e => full(e.budget), num: true }, { l: 'اقدام بعدی', v: e => `<span class="muted">${esc(e.next || '')}</span>` },
   ],
 };
-const OPEN = { receipt: r => `${r.src}:${r.id}`, cost: r => `${r.src}:${r.id}`, roster: c => `stmt:${c.id}`, tuition: c => `stmt:${c.id}`, rings: c => `stmt:${c.id}`, service: r => `stmt:${r.c.id}`, inst: i => `installments:${i.id}`, staff: s => `staff:${s.id}`, tariff: t => `tariffs:${t.id}`, event: e => `events:${e.id}` };
+const OPEN = { receipt: r => `${r.src}:${r.id}`, cost: r => `${r.src}:${r.id}`, roster: c => `stmt:${c.id}`, shift: r => `stmt:${r.c.id}`, tuition: c => `stmt:${c.id}`, rings: c => `stmt:${c.id}`, service: r => `stmt:${r.c.id}`, inst: i => `installments:${i.id}`, staff: s => `staff:${s.id}`, tariff: t => `tariffs:${t.id}`, event: e => `events:${e.id}` };
 const byRemaining = (a, b) => fin(b.id).remaining - fin(a.id).remaining;
 /* side services: which child has which, and the payments recorded for each */
 /* «دارد» from older sheets means both */
@@ -2031,6 +2060,13 @@ const SVC = [
   { k: 'صبحانه و چاشت', has: c => !!mealOf(c), monthly: true, words: ['صبحانه', 'چاشت'] },
   { k: 'بیمه ورزشی', bar: 'بیمه (پرداخت‌شده)', has: c => same(c.insurance, 'دریافت شد'), words: ['بیمه'] },
 ];
+/* afternoon-shift children and what each has paid */
+function shiftRows(M) {
+  return M.active.filter(c => same(c.attendance, PM_SHIFT)).map(c => {
+    const pays = M.S.payments.filter(p => p.childId === c.id);
+    return { c, pays, paid: sum(pays, p => p.amount), month: pays.some(p => payMonth(p) === curMonth()) };
+  }).sort((a, b) => b.paid - a.paid || String(a.c.name).localeCompare(String(b.c.name), 'fa'));
+}
 /* private counselling sessions: hours bought = amount ÷ the hourly rate in «خدمات» */
 function counselRate() { const s = DB.services.find(x => norm(x.title).includes(norm(COUNSEL)) && +x.amount > 0); return s ? +s.amount : null; }
 function counselRows(M) {
@@ -2087,6 +2123,7 @@ function tileDetail(id, M, sel) {
     case 'rings': return { kind: 'rings', sumCol: 'تعهد شهریه', title: 'شهریه، بیمه و چک کودکان فعال · بیشترین مانده اول', rows: kids.sort(byRemaining) };
     case 'classes': { let rows = kids; if (sel) rows = rows.filter(c => same(clsOf(c), sel.cls)); return { kind: 'roster', title: 'کودکان فعال', rows: rows.sort((a, b) => String(clsOf(a)).localeCompare(String(clsOf(b)), 'fa') || String(a.name).localeCompare(String(b.name), 'fa')) }; }
     case 'ageAtt': { let rows = kids; if (sel) rows = rows.filter(c => same(c.group, sel.group) && (!sel.att || same(c.attendance, sel.att))); return { kind: 'roster', title: 'کودکان فعال', rows: rows.sort((a, b) => String(a.name).localeCompare(String(b.name), 'fa')) }; }
+    case 'afternoon': { let rows = shiftRows(M); if (sel) rows = rows.filter(r => r.c.id === sel.id); return { kind: 'shift', title: 'کودکان شیفت عصر و پرداخت‌هایشان', rows }; }
     case 'counsel': {
       let rows = receiptRows(S).filter(r => same(r.category, COUNSEL)); if (sel) rows = rows.filter(r => r.childId === sel.id);
       return { kind: 'receipt', title: 'پرداخت‌های مشاوره‌ی خصوصی', rows: rows.sort(byDateDesc) };
@@ -2115,6 +2152,7 @@ function tilePick(id, M, index, ds) {
   switch (id) {
     case 'trend': { const day = M.days[index]; return day == null ? null : { day, label: `${weekday(day)} ${jHuman(fromJdn(day))}` }; }
     case 'category': { const x = catItems[index]; return x ? { cat: x.l, label: x.l } : null; }
+    case 'afternoon': { const x = shiftRows(M)[index]; return x ? { id: x.c.id, label: x.c.name } : null; }
     case 'counsel': { const x = counselRows(M)[index]; return x ? { id: x.id, label: x.l } : null; }
     case 'method': { const x = methItems[index]; return x ? { method: x.l, label: x.l } : null; }
     case 'classes': { const x = M.classes[index]; return x ? { cls: x.cl, label: `کلاس ${x.cl}` } : null; }
