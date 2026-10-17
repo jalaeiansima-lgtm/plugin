@@ -258,6 +258,10 @@ td:has(>.pay-lines){white-space:normal;min-width:150px}
 .rp-sec h3 small{font-weight:400;color:var(--ink-3);font-size:12px}
 .rp-sec .tbl-scroll{max-height:320px}
 .rp-note{font-size:12px;margin:6px 0 0}
+.rem-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rem-list .pay-line{display:block;font-size:13px;padding:6px 10px}
+.rp-rem{border:1px solid color-mix(in srgb,var(--c2) 45%,transparent);border-radius:12px;padding:10px 14px;background:color-mix(in srgb,var(--c2) 8%,transparent)}
+.chip.bell{cursor:pointer;border-color:var(--c2);color:#fff;font:inherit;font-size:12px;box-shadow:0 0 10px color-mix(in srgb,var(--c2) 45%,transparent)}
 @media (max-width:700px){.rp-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .modal.max .tile h3{font-size:18px}
 .modal.max .lg{font-size:14px;gap:10px;flex:0 0 auto;max-width:44%;margin-inline-end:auto;justify-content:center}
@@ -548,7 +552,7 @@ function dateFromExcel(v) {
 const AGE = ['نوباوه','پیش‌یک','پیش‌دو','دبستانی'];
 const ATT = ['هرروز','یک‌روزدرمیان','پنجشنبه‌ها','شیفت عصر'];
 const VOCAB_ALIAS = { 'پیش1': 'پیش‌یک', 'پیش2': 'پیش‌دو', 'یکدرمیان': 'یک‌روزدرمیان', 'روزدرمیان': 'یک‌روزدرمیان', 'یکروزدرمیون': 'یک‌روزدرمیان', 'هرروزه': 'هرروز' };
-const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','سرویس','موسیقی','تابستان','مشاوره','سایر'];
+const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','سرویس','موسیقی','زبان','دیرکرد','تابستان','مشاوره','سایر'];
 const COUNSEL = 'مشاوره';
 const PM_SHIFT = 'شیفت عصر';   // afternoon shift: its own tile   // private counselling: its own tile, kept out of the receipts-by-category chart
 const METHODS = ['کارت','واریز','اسکناس','نامشخص'];
@@ -651,6 +655,7 @@ const SCHEMA = {
     { k: 'title', h: 'عنوان رویداد', req: 1 },
     { k: 'type', h: 'نوع', type: 'combo', opts: () => uniq(['اردو','جشن','جلسه اولیا', ...DB.events.map(e => e.type)]) },
     { k: 'date', h: 'تاریخ', type: 'date' },
+    { k: 'repeat', h: 'تکرار', type: 'select', opts: () => ['', 'ماهانه'], hint: 'ماهانه: هر ماه در همان روز از ماه' },
     { k: 'time', h: 'ساعت' },
     { k: 'status', h: 'وضعیت', type: 'combo', opts: () => uniq(['برنامه‌ریزی نشده','در حال برنامه‌ریزی','قطعی','برگزار شد', ...DB.events.map(e => e.status)]) },
     { k: 'budget', h: 'بودجه', type: 'money' },
@@ -1505,9 +1510,34 @@ function dashModel() {
     salThisMonth: sum(DB.salaries.filter(s => salKey(s) === TODAY.slice(0, 7)), s => s.amount),
   };
 }
+/* a monthly event's next date: the same day of this month (or the month's last day), else of next month */
+const jMonthLen = (y, m) => m <= 6 ? 31 : m <= 11 ? 30 : jalCal(y, false).leap === 0 ? 30 : 29;
+function eventDate(e) {
+  if (!e.date || !same(e.repeat, 'ماهانه') || (jdnOf(e.date) ?? -1) >= TODAY_JDN) return e.date || null;
+  const o = jParse(e.date); if (!o) return e.date;
+  let { jy: y, jm: m } = d2j(TODAY_JDN);
+  for (let k = 0; k < 2; k++, m = m === 12 ? 1 : m + 1, y = m === 1 ? y + 1 : y) {
+    const d = jStr({ jy: y, jm: m, jd: Math.min(o.jd, jMonthLen(y, m)) });
+    if (jdnOf(d) >= TODAY_JDN) return d;
+  }
+  return e.date;
+}
+/* due today or within «یادآوری چند روز قبل»: events, and pending cheques and instalments */
+function remindersToday() {
+  const out = [], win = x => x.remind == null || x.remind === '' ? 3 : +x.remind;
+  for (const e of DB.events) {
+    const d = eventDate(e), j = jdnOf(d); if (j == null || same(e.status, 'برگزار شد')) continue;
+    if (j - TODAY_JDN >= 0 && j - TODAY_JDN <= win(e)) out.push({ open: `events:${e.id}`, title: e.title, date: d, left: j - TODAY_JDN, note: e.next || '' });
+  }
+  for (const i of DB.installments) {
+    const j = jdnOf(i.due), c = childById(i.childId); if (!isPending(i.status) || j == null || (c && !isActive(c))) continue;
+    if (j - TODAY_JDN >= 0 && j - TODAY_JDN <= win(i)) out.push({ open: `installments:${i.id}`, title: `${i.type || 'قسط'} ${c ? c.name : ''}`, date: i.due, left: j - TODAY_JDN, note: `${i.amount != null ? full(i.amount) + ' تومان' : 'مبلغ نامشخص'}${i.keeper ? ' · نزد ' + i.keeper : ''}` });
+  }
+  return out.sort((a, b) => a.left - b.left);
+}
 function nextEventOf() {
-  const dated = DB.events.filter(e => jdnOf(e.date) != null && jdnOf(e.date) >= TODAY_JDN && !same(e.status, 'برگزار شد')).sort((a, b) => jdnOf(a.date) - jdnOf(b.date));
-  if (dated.length) return { e: dated[0], dated: true };
+  const dated = DB.events.filter(e => jdnOf(eventDate(e)) != null && jdnOf(eventDate(e)) >= TODAY_JDN && !same(e.status, 'برگزار شد')).sort((a, b) => jdnOf(eventDate(a)) - jdnOf(eventDate(b)));
+  if (dated.length) return { e: { ...dated[0], date: eventDate(dated[0]) }, dated: true };
   const open = DB.events.find(e => !e.date && !same(e.status, 'برگزار شد'));
   return open ? { e: open, dated: false } : null;
 }
@@ -1539,7 +1569,7 @@ function buildTiles(M, t) {
         datasets: [{ label: 'دریافتی', data: M.dailyVals, borderColor: lineGrad(C[0], C[2]), backgroundColor: areaGrad(C[2]), fill: 'origin', tension: .38, borderWidth: 2.5,
           pointRadius: M.dailyVals.map(v => v ? 3 : 0), pointHoverRadius: 5, pointBackgroundColor: '#fff', pointBorderColor: C[2], pointBorderWidth: 2, glow: C[2] }] }, options: o };
     } });
-  const catItems = PAY_CATS.map((l, i) => ({ l, v: M.catVals[i], c: i < 5 ? C[i] : t.neutral })).filter(x => x.v > 0 && x.l !== COUNSEL);
+  const catItems = PAY_CATS.map((l, i) => ({ l, v: M.catVals[i] })).filter(x => x.v > 0 && x.l !== COUNSEL).map((x, i) => ({ ...x, c: x.l === 'سایر' ? t.neutral : i < 5 ? C[i] : C[i % 5] + '99' }));   // colours by visible slice
   T.push({ id: 'category', t: 'دریافت به تفکیک دسته', sub: 'میلیون تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[0],
     empty: M.catTotal ? '' : none('دریافتی ثبت نشده است.'), center: moneyCenter(M.catTotal, 'کل'), side: lgHtml(catItems, m1),
     cfg: () => donutCfg(t, catItems.map(x => x.l), catItems.map(x => x.v), catItems.map(x => x.c), { money: true }) });
@@ -1560,7 +1590,7 @@ function buildTiles(M, t) {
       options: baseOpts(t, { horizontal: true, stacked: true, labels: true, unit: 'کودک', grace: '16%' }) }) });
   const svc = SVC.map((x, i) => ({ l: x.bar || x.k, k: x.k, v: serviceRows(M, i).length }));   // same rule as the list behind each bar
   // one price per service: «صبحانه و چاشت ۱٫۸–۳٫۶ میلیون»
-  const prices = Object.create(null); for (const s of DB.services) { const l = String(s.title || '').replace(/\s*\(.*\)\s*$/, '').trim(), k = norm(l); if (!k || s.amount == null || k.includes(norm(COUNSEL))) continue; (prices[k] = prices[k] || { l, a: [] }).a.push(+s.amount); }
+  const prices = Object.create(null); for (const s of DB.services) { const l = String(s.title || '').replace(/\s*\(.*\)\s*$/, '').trim(), k = norm(l); if (!k || s.amount == null || !SVC.some(x => k.includes(norm(x.k)) || norm(x.k).includes(k))) continue; (prices[k] = prices[k] || { l, a: [] }).a.push(+s.amount); }
   const priceNote = Object.values(prices).map(({ l: k, a }) => { const lo = Math.min(...a), hi = Math.max(...a); return `${k} ${lo === hi ? money(lo) : `${money(lo).replace(/ \S+$/, '')}–${money(hi)}`}`; }).join(' · ');
   T.push({ id: 'services', t: 'خدمات جانبی', sub: `از ${faNum(M.active.length)} کودک فعال`, sheet: 'خدمات', page: 'tariffs', tc: C[1], note: priceNote,
     empty: M.active.length ? '' : none('کودک فعالی ثبت نشده است.'),
@@ -1577,14 +1607,14 @@ function buildTiles(M, t) {
       const o = baseOpts(t, { horizontal: true, labels: true, unit: 'تومان', grace: '30%', labelFmt: v => v ? money(v) : 'بدون پرداخت' });
       return { type: 'bar', data: { labels: pm.map(x => x.c.name), datasets: [barDs('پرداختی', pm.map(x => x.paid), C[4], hGrad(C[4]))] }, options: o };
     } });
-  const cs = counselRows(M), rate = counselRate(), csN = sum(cs, x => x.n || 0), renew = DB.events.find(e => norm(e.title).includes(norm(COUNSEL)) && jdnOf(e.date) != null && jdnOf(e.date) >= TODAY_JDN);
+  const cs = counselRows(M), rate = counselRate(), hasN = cs.length && cs.every(x => x.n != null), csN = sum(cs, x => x.n || 0), renew = DB.events.find(e => norm(e.title).includes(norm(COUNSEL)) && jdnOf(eventDate(e)) != null && jdnOf(eventDate(e)) >= TODAY_JDN);
   T.push({ id: 'counsel', t: 'مشاوره‌ی خصوصی', sub: rate ? `جلسه · هر ساعت ${money(rate)}` : 'تومان', sheet: 'دریافت‌ها', page: 'payments', tc: C[3],
-    note: [cs.length ? `${faNum(cs.length)} کودک · ${rate ? `${faNum(csN)} جلسه · ` : ''}${money(sum(cs, x => x.amt))}` : '', renew ? `تمدید: ${jHuman(renew.date, false)}` : ''].filter(Boolean).join(' · '),
+    note: [cs.length ? `${faNum(cs.length)} کودک · ${hasN ? `${faNum(csN)} جلسه · ` : ''}${money(sum(cs, x => x.amt))}` : '', renew ? `تمدید: ${jHuman(eventDate(renew), false)}` : ''].filter(Boolean).join(' · '),
     empty: cs.length ? '' : none('هنوز جلسه‌ی مشاوره‌ای ثبت نشده است.'),
     cfg: () => {
-      const o = baseOpts(t, { horizontal: true, labels: true, unit: rate ? 'جلسه' : 'تومان', grace: '30%', labelFmt: v => rate ? `${faNum(v)} جلسه` : money(v) });
+      const o = baseOpts(t, { horizontal: true, labels: true, unit: hasN ? 'جلسه' : 'تومان', grace: '30%', labelFmt: v => hasN ? `${faNum(v)} جلسه` : money(v) });
       o.plugins.tooltip.callbacks.footer = items => `پرداخت: ${money(cs[items[0].dataIndex].amt)}`;
-      return { type: 'bar', data: { labels: cs.map(x => x.l), datasets: [barDs(rate ? 'جلسه' : 'مبلغ', cs.map(x => rate ? x.n : x.amt), C[3], hGrad(C[3]))] }, options: o };
+      return { type: 'bar', data: { labels: cs.map(x => x.l), datasets: [barDs(hasN ? 'جلسه' : 'مبلغ', cs.map(x => hasN ? x.n : x.amt), C[3], hGrad(C[3]))] }, options: o };
     } });
   const tuItems = [{ l: 'دریافت‌شده', v: M.tot.collected, c: C[0] }, { l: 'چک و قسط', v: M.tot.scheduled, c: C[1] }, { l: 'بی‌برنامه', v: M.tot.unscheduled, c: C[2] }];
   T.push({ id: 'tuition', t: 'ترکیب تعهد شهریه', sub: `میلیون تومان · از ${money(M.tot.expected)}`, sheet: 'کودکان', page: 'children', tc: C[2],
@@ -1615,10 +1645,10 @@ function buildTiles(M, t) {
     legend: hasCosts ? ilg([{ l: 'حقوق', c: C[3] }, { l: 'خرید و هزینه', c: C[2] }]) : '',
     empty: hasCosts ? '' : '<span>هنوز هزینه یا حقوقی ثبت نشده است.</span><span class="row"><button class="btn sm" type="button" data-add="expenses">+ ثبت هزینه</button><button class="btn sm" type="button" data-add="salaries">+ ثبت حقوق</button></span>',
     cfg: () => ({ type: 'bar', data: { labels: monthLabels(M.costMonths), datasets: [barDs('حقوق', M.salByM, C[3], vGrad(C[3])), barDs('خرید و هزینه', M.expByM, C[2], vGrad(C[2]))] }, options: baseOpts(t, { millions: true, money: true }) }) });
-  const evs = DB.events.slice().sort((a, b) => (jdnOf(a.date) ?? 1e9) - (jdnOf(b.date) ?? 1e9));
+  const evs = DB.events.slice().sort((a, b) => (jdnOf(eventDate(a)) ?? 1e9) - (jdnOf(eventDate(b)) ?? 1e9));
   T.push({ id: 'events', t: 'رویدادها', sub: `${faNum(evs.length)} رویداد`, sheet: 'رویدادها', page: 'events', tc: C[4], kind: 'html',
     empty: evs.length ? '' : '<span>رویدادی ثبت نشده است.</span><span class="row"><button class="btn sm" type="button" data-add="events">+ ثبت رویداد</button></span>',
-    html: `<ul class="evl">${evs.map(e => `<li><button type="button" class="ev"${PRESENT ? ' tabindex="-1"' : ` data-open="events:${esc(e.id)}"`}><b>${esc(e.title)}</b><span class="when">${e.date ? jHuman(e.date, false) : 'بدون تاریخ'}${e.budget ? ` · بودجه ${money(e.budget)}` : ''}</span>${eventPill(e.status)}${e.next ? `<small>${esc(e.next)}</small>` : ''}</button></li>`).join('')}</ul>` });
+    html: `<ul class="evl">${evs.map(e => `<li><button type="button" class="ev"${PRESENT ? ' tabindex="-1"' : ` data-open="events:${esc(e.id)}"`}><b>${esc(e.title)}</b><span class="when">${e.date ? jHuman(eventDate(e), false) : 'بدون تاریخ'}${same(e.repeat, 'ماهانه') ? ' · هر ماه' : ''}${e.budget ? ` · بودجه ${money(e.budget)}` : ''}</span>${eventPill(e.status)}${e.next ? `<small>${esc(e.next)}</small>` : ''}</button></li>`).join('')}</ul>` });
   return T;
 }
 function tileHtml(d, prefix, inModal) {
@@ -2046,7 +2076,7 @@ const DCOL = {
     { l: 'جمع تعهد', v: t => full(tariffTotal(t)), num: true },
   ],
   event: [
-    { l: 'رویداد', v: e => `<span class="name">${esc(e.title)}</span>` }, { l: 'تاریخ', v: e => e.date ? esc(jHuman(e.date)) : '<span class="muted">بدون تاریخ</span>' },
+    { l: 'رویداد', v: e => `<span class="name">${esc(e.title)}</span>` }, { l: 'تاریخ', v: e => e.date ? `${esc(jHuman(eventDate(e)))}${same(e.repeat, 'ماهانه') ? ' <small class="muted">هر ماه</small>' : ''}` : '<span class="muted">بدون تاریخ</span>' },
     { l: 'وضعیت', v: e => eventPill(e.status) }, { l: 'بودجه', v: e => full(e.budget), num: true }, { l: 'اقدام بعدی', v: e => `<span class="muted">${esc(e.next || '')}</span>` },
   ],
 };
@@ -2071,7 +2101,8 @@ function shiftRows(M) {
 function counselRate() { const s = DB.services.find(x => norm(x.title).includes(norm(COUNSEL)) && +x.amount > 0); return s ? +s.amount : null; }
 function counselRows(M) {
   const rate = counselRate(), ps = M.S.payments.filter(p => same(p.category, COUNSEL));
-  return uniq(ps.map(p => p.childId)).map(id => { const amt = sum(ps.filter(p => p.childId === id), p => p.amount); return { id, l: childById(id)?.name || id, amt, n: rate ? Math.round(amt / rate) : null }; })
+  const sessions = p => { const m = toEn(p.for || '').match(/(\d+)\s*جلسه/); return m ? +m[1] : rate ? Math.round((+p.amount || 0) / rate) : null; };
+  return uniq(ps.map(p => p.childId)).map(id => { const mine = ps.filter(p => p.childId === id), ns = mine.map(sessions); return { id, l: childById(id)?.name || id, amt: sum(mine, p => p.amount), n: ns.every(n => n != null) ? sum(ns, n => n) : null }; })
     .sort((a, b) => b.amt - a.amt);
 }
 function svcOfPayment(p) {
@@ -2141,7 +2172,7 @@ function tileDetail(id, M, sel) {
     case 'dues': { let rows = pend; if (sel) rows = rows.filter(i => normDate(i.due).slice(0, 7) === sel.month && (sel.cheque == null || same(i.type, 'چک') === sel.cheque)); return { kind: 'inst', title: 'چک‌ها و اقساط در انتظار · نزدیک‌ترین سررسید اول', rows }; }
     case 'tariffs': return { kind: 'tariff', title: 'تعرفه‌ها', rows: sel ? DB.tariffs.filter(x => x.id === sel.id) : DB.tariffs.slice() };
     case 'costs': { let rows = costRows().filter(r => M.costMonths.includes(r.month)); if (sel) rows = rows.filter(r => r.month === sel.month && (!sel.kind || r.kind === sel.kind)); return { kind: 'cost', title: 'حقوق و هزینه‌های ۶ ماه اخیر', rows: rows.sort(byDateDesc) }; }
-    case 'events': return { kind: 'event', title: 'رویدادها', rows: DB.events.slice().sort((a, b) => (jdnOf(a.date) ?? 1e9) - (jdnOf(b.date) ?? 1e9)) };
+    case 'events': return { kind: 'event', title: 'رویدادها', rows: DB.events.slice().sort((a, b) => (jdnOf(eventDate(a)) ?? 1e9) - (jdnOf(eventDate(b)) ?? 1e9)) };
   }
   return null;
 }
@@ -2229,7 +2260,7 @@ function openReport(p) {
   const inSum = sum(rec, r => r.amount), outSum = sum(out, r => r.amount);
   const tuitionIn = sum(rec.filter(r => same(r.category, 'شهریه')), r => r.amount);
   const undated = allRec.filter(r => jdnOf(r.date) == null).length;
-  const tabs = [['today', 'امروز'], ['yesterday', 'دیروز'], ['week', '۷ روز اخیر'], ['month', 'این ماه']];
+  const tabs = [['today', 'امروز'], ['yesterday', 'دیروز'], ['week', '۷ روز اخیر'], ['month', 'این ماه']], rem = remindersToday();
   destroyCharts('mx-'); MAX_SEL = null;
   $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal report" role="dialog" aria-modal="true" aria-labelledby="rp-title">
     <button type="button" class="close-x" data-close aria-label="بستن" title="بستن (Esc)">✕</button>
@@ -2241,6 +2272,7 @@ function openReport(p) {
       <div style="--k:var(--c2)"><span>خالص</span><b>${inSum - outSum < 0 ? '−' : ''}${money(Math.abs(inSum - outSum))}</b><small>دریافت منهای پرداخت</small></div>
       <div style="--k:${overdue.length ? 'var(--bad)' : 'var(--c5)'}"><span>سررسیدهای عقب‌افتاده</span><b>${faNum(overdue.length)}</b><small>${overdue.length ? money(sum(overdue, i => i.amount)) + ' تومان' : 'ندارد'}</small></div>
     </div>
+    ${rem.length ? `<section class="rp-sec rp-rem"><h3>🔔 یادآوری‌ها <small>امروز و چند روز آینده</small></h3><ul class="rem-list">${rem.map(r => `<li><button type="button" class="pay-line" data-open="${esc(r.open)}"><b>${r.left ? `${faNum(r.left)} روز دیگر` : 'امروز'}</b> · ${esc(jHuman(r.date, false))} · ${esc(r.title)}${r.note ? ` · <span class="muted">${esc(r.note)}</span>` : ''}</button></li>`).join('')}</ul></section>` : ''}
     <section class="rp-sec"><h3>دریافت‌ها <small>${faNum(rec.length)} مورد · ${full(inSum)} تومان</small></h3>${tableHtml('receipt', rec, 'در این بازه دریافتی ثبت نشده است.')}
       ${undated ? `<p class="muted rp-note">${faNum(undated)} دریافت بدون تاریخ در گزارش‌های تاریخ‌دار نمی‌آید؛ برای دیدنشان صفحه‌ی «دریافت‌ها» را باز کنید.</p>` : ''}</section>
     <section class="rp-sec"><h3>پرداخت‌ها <small>${faNum(out.length)} مورد · ${full(outSum)} تومان</small></h3>${tableHtml('cost', out, 'در این بازه حقوق یا هزینه‌ای ثبت نشده است.')}</section>
@@ -2252,7 +2284,7 @@ function openReport(p) {
 /* ================= child accounts =================
    «حساب کودکان»: one row per child with what was paid for each branch (tuition, swimming, meals, insurance…)
    and what is still owed. A child's statement lists every payment by branch with its date, plus upcoming cheques. */
-const BRANCHES = ['شهریه', 'شنا', 'صبحانه و چاشت', 'بیمه ورزشی', 'سرویس', 'موسیقی', 'مشاوره', 'تابستان', 'سایر'];
+const BRANCHES = ['شهریه', 'شنا', 'صبحانه و چاشت', 'بیمه ورزشی', 'سرویس', 'موسیقی', 'زبان', 'دیرکرد', 'مشاوره', 'تابستان', 'سایر'];
 const curMonth = () => TODAY.slice(0, 7);
 const curMonthName = () => MONTHS[+curMonth().slice(5) - 1];
 const payMonth = p => (p.month && jMonth(p.month)) || (normDate(p.date) || '').slice(0, 7) || null;
@@ -2339,7 +2371,7 @@ const ACC_COLS = [
   { l: 'شنا', num: 1, sum: r => r.L.paid['شنا'], v: r => r.L.paid['شنا'] ? full(r.L.paid['شنا']) : r.L.swimDue ? pill('warn', 'پرداخت نشده', '!') : '<span class="muted">—</span>' },
   { l: 'صبحانه / چاشت', num: 1, sum: r => r.L.paid['صبحانه و چاشت'], v: r => `${r.L.paid['صبحانه و چاشت'] ? full(r.L.paid['صبحانه و چاشت']) : mealOf(r.c) ? '' : '<span class="muted">—</span>'}${mealOf(r.c) ? ` <small class="muted">${esc(mealOf(r.c))}</small>${r.L.mealDue ? ' ' + pill('warn', `${curMonthName()} پرداخت نشده`, '!') : ''}` : ''}` },
   { l: 'بیمه ورزشی', num: 1, sum: r => r.L.paid['بیمه ورزشی'], v: r => r.L.paid['بیمه ورزشی'] ? full(r.L.paid['بیمه ورزشی']) : '<span class="muted">—</span>' },
-  ...['سرویس', 'موسیقی', 'مشاوره'].map(b => ({ l: b, num: 1, opt: 1, sum: r => r.L.paid[b], v: r => r.L.paid[b] ? full(r.L.paid[b]) : '<span class="muted">—</span>' })),
+  ...['سرویس', 'موسیقی', 'زبان', 'دیرکرد', 'مشاوره'].map(b => ({ l: b, num: 1, opt: 1, sum: r => r.L.paid[b], v: r => r.L.paid[b] ? full(r.L.paid[b]) : '<span class="muted">—</span>' })),
   { l: 'سایر', num: 1, opt: 1, sum: r => r.L.paid['تابستان'] + r.L.paid['سایر'], v: r => r.L.paid['تابستان'] + r.L.paid['سایر'] ? full(r.L.paid['تابستان'] + r.L.paid['سایر']) : '<span class="muted">—</span>' },
   { l: 'جمع پرداختی', num: 1, sum: r => r.L.total, v: r => `<b>${full(r.L.total)}</b>` },
   { l: 'بدهی شهریه', num: 1, sum: r => r.L.f.remaining, v: r => r.L.f.remaining ? `<b class="owe">${full(r.L.f.remaining)}</b>` : isExempt(r.c) ? '<span class="muted">معاف</span>' : lacksTariff(r.c) ? pill('warn', 'تعرفه ندارد', '!') : isPayg(r.c) ? '<span class="muted">روزشمار</span>' : pill('good', 'تسویه', '✓') },
@@ -2463,7 +2495,8 @@ function render() {
   let metaChips = '';
   if (isDash) {
     const nx = nextEventOf();
-    metaChips = `<div class="meta"><span class="chip">${esc(weekday(TODAY_JDN))} ${jHuman(TODAY)}</span>${nx ? `<a class="chip" href="#events" style="text-decoration:none">${nx.dated ? `رویداد بعدی: ${esc(nx.e.title)} · ${jHuman(nx.e.date, false)}` : `در انتظار برنامه‌ریزی: ${esc(nx.e.title)}`}</a>` : ''}${fchips.join('')}</div>`;
+    const rem = remindersToday();
+    metaChips = `<div class="meta"><span class="chip">${esc(weekday(TODAY_JDN))} ${jHuman(TODAY)}</span>${rem.length ? `<button type="button" class="chip bell" data-report title="${esc(rem.map(r => r.title).join('، '))}">🔔 ${faNum(rem.length)} یادآوری</button>` : ''}${nx ? `<a class="chip" href="#events" style="text-decoration:none">${nx.dated ? `رویداد بعدی: ${esc(nx.e.title)} · ${jHuman(nx.e.date, false)}` : `در انتظار برنامه‌ریزی: ${esc(nx.e.title)}`}</a>` : ''}${fchips.join('')}</div>`;
   }
   main.insertAdjacentHTML('beforeend', `<div class="topbar"><h1>${isDash ? 'نمای کلی مهد' : esc(meta.l)}</h1>${metaChips}<div class="actions">
       <input class="kid-pick" list="kid-names" type="search" placeholder="🔎 حساب کودک…" aria-label="نام کودک را بنویسید تا حسابش باز شود" autocomplete="off"><datalist id="kid-names">${DB.children.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist>
