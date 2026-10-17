@@ -550,11 +550,11 @@ function dateFromExcel(v) {
 
 /* ================= domain vocab ================= */
 const AGE = ['نوباوه','پیش‌یک','پیش‌دو','دبستانی'];
-const ATT = ['هرروز','یک‌روزدرمیان','پنجشنبه‌ها','شیفت عصر'];
+const ATT = ['هرروز','یک‌روزدرمیان','پنجشنبه‌ها','عصر هرروز','عصر یک‌روزدرمیان'];
 const VOCAB_ALIAS = { 'پیش1': 'پیش‌یک', 'پیش2': 'پیش‌دو', 'یکدرمیان': 'یک‌روزدرمیان', 'روزدرمیان': 'یک‌روزدرمیان', 'یکروزدرمیون': 'یک‌روزدرمیان', 'هرروزه': 'هرروز' };
 const PAY_CATS = ['شهریه','شنا','صبحانه و چاشت','بیمه ورزشی','سرویس','موسیقی','زبان','دیرکرد','تابستان','مشاوره','سایر'];
 const COUNSEL = 'مشاوره';
-const PM_SHIFT = 'شیفت عصر';   // afternoon shift: its own tile   // private counselling: its own tile, kept out of the receipts-by-category chart
+const isPM = c => norm(c.attendance).includes(norm('عصر'));   // afternoon shift: its own tile   // private counselling: its own tile, kept out of the receipts-by-category chart
 const METHODS = ['کارت','واریز','اسکناس','نامشخص'];
 const INST_STATUS = ['چک هنوز تحویل نشده','در انتظار سررسید','وصول‌شده','پرداخت‌شده','برگشتی'];
 const isDone = s => ['وصولشده','پرداختشده'].includes(norm(s));
@@ -569,6 +569,7 @@ const SCHEMA = {
     { k: 'group', h: 'گروه سنی', type: 'combo', req: 1, opts: () => uniq([...AGE, ...DB.tariffs.map(t => t.group)]) },
     { k: 'attendance', h: 'نوع حضور', type: 'combo', req: 1, opts: () => uniq([...ATT, ...DB.tariffs.map(t => t.attendance)]) },
     { k: 'cls', h: 'کلاس', type: 'combo', opts: () => uniq(DB.children.map(c => c.cls)) },
+    { k: 'start', h: 'تاریخ ورود', type: 'date' },
     { k: 'status', h: 'وضعیت', type: 'select', opts: () => ['فعال','غیرفعال','انصراف'], def: 'فعال' },
     { k: 'payMode', h: 'نحوه پرداخت شهریه', type: 'combo', def: 'نقد + چک (طبق تعرفه)', opts: () => uniq(['نقد + چک (طبق تعرفه)','نقد + اقساط نقدی','تسویه کامل','ثبت‌نام یک‌ماهه','آزمایشی یک‌ماهه','معاف از شهریه', ...DB.children.map(c => c.payMode)]) },
     { k: 'agreedFee', h: 'شهریه توافقی', type: 'money', hint: 'خالی بماند یعنی طبق تعرفه' },
@@ -580,12 +581,13 @@ const SCHEMA = {
   ]},
   tariffs: { sheet: 'تعرفه‌ها', title: 'تعرفه‌ها', one: 'تعرفه', any: 'تعرفه‌ای', prefix: 'T', pad: 2, fields: [
     { k: 'id', h: null, type: 'id' },
-    { k: 'group', h: 'گروه سنی', type: 'combo', req: 1, opts: () => AGE },
+    { k: 'group', h: 'گروه سنی', type: 'combo', req: 1, opts: () => ['همه', ...AGE], hint: '«همه» یعنی برای هر گروه سنی' },
     { k: 'attendance', h: 'نوع حضور', type: 'combo', req: 1, opts: () => ATT },
     { k: 'cash', h: 'بخش نقدی', type: 'money' },
     { k: 'check1', h: 'چک اول', type: 'money' },
     { k: 'check2', h: 'چک دوم', type: 'money' },
     { k: 'total', h: 'جمع تعهد', type: 'money', hint: 'خالی بماند یعنی جمع سه مبلغ بالا' },
+    { k: 'period', h: 'دوره', type: 'select', opts: () => ['', 'ماهانه'], hint: 'ماهانه: این مبلغ هر ماه از ماه ورود کودک حساب می‌شود' },
     { k: 'notes', h: 'توضیحات', type: 'note' },
   ]},
   services: { sheet: 'خدمات', title: 'خدمات جانبی', one: 'خدمت', prefix: 'SV', pad: 2, fields: [
@@ -1190,7 +1192,8 @@ function nextId(ent) {
   const nums = (DB ? DB[ent] : []).map(r => parseInt(String(r.id || '').replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
   return sc.prefix + String((nums.length ? Math.max(...nums) : 0) + 1).padStart(sc.pad, '0');
 }
-const tariffFor = c => DB.tariffs.find(t => same(t.group, c.group) && same(t.attendance, c.attendance));
+const tariffFor = c => DB.tariffs.find(t => same(t.group, c.group) && same(t.attendance, c.attendance)) || DB.tariffs.find(t => same(t.group, 'همه') && same(t.attendance, c.attendance));
+const isMonthly = t => !!t && same(t.period, 'ماهانه');
 const tariffTotal = t => !t ? 0 : (t.total != null ? +t.total : (+t.cash || 0) + (+t.check1 || 0) + (+t.check2 || 0));
 const isExempt = c => norm(c.payMode).includes(norm('معاف'));
 /* day-rate tuition (روزشمار) is billed at the end of each month: nothing is owed in advance */
@@ -1198,6 +1201,12 @@ const isPayg = c => norm(c.payMode).includes(norm('روزشمار'));
 const lacksTariff = c => !isExempt(c) && !isPayg(c) && c.agreedFee == null && !tariffTotal(tariffFor(c));
 const isActive = c => !c.status || same(c.status, 'فعال');
 let FIN = new Map();
+/* months a child on a monthly tariff has been billed for: from the entry month (or first payment) to this month */
+function monthsIn(c) {
+  const first = normDate(c.start) || DB.payments.filter(p => p.childId === c.id).map(p => normDate(p.date)).filter(Boolean).sort()[0] || TODAY;
+  const n = s => +s.slice(0, 4) * 12 + +s.slice(5, 7);
+  return Math.max(1, n(TODAY) - n(first) + 1);
+}
 function computeFin() {
   FIN = new Map();
   const paid = {}, done = {}, sched = {};
@@ -1209,7 +1218,8 @@ function computeFin() {
   }
   for (const c of DB.children) {
     const received = (paid[c.id] || 0) + (done[c.id] || 0);
-    const expected = isExempt(c) ? 0 : isPayg(c) ? received : (c.agreedFee != null ? +c.agreedFee : tariffTotal(tariffFor(c)));
+    const t = tariffFor(c);
+    const expected = isExempt(c) ? 0 : isPayg(c) ? received : c.agreedFee != null ? +c.agreedFee : isMonthly(t) ? tariffTotal(t) * monthsIn(c) : tariffTotal(t);
     const remaining = Math.max(0, expected - received);
     const scheduled = Math.min(sched[c.id] || 0, remaining);
     FIN.set(c.id, { expected, paid: paid[c.id] || 0, collected: done[c.id] || 0, received, remaining, scheduled, unscheduled: remaining - scheduled, ratio: expected ? pct(received, expected) : null });
@@ -1498,7 +1508,7 @@ function dashModel() {
     chkReq: chkReqL.length, chkGot: chkReqL.filter(c => norm(c.checkStatus).startsWith(norm('تحویل داده'))).length,
     noPay: active.filter(c => fin(c.id).expected > 0 && fin(c.id).received === 0).length,
     noTariff: active.filter(lacksTariff).length,
-    atts, att: ATT.map(a => active.filter(c => same(c.attendance, a)).length),
+    atts, att: atts.map(a => active.filter(c => same(c.attendance, a)).length),
     roles: uniq(staffActive.map(s => s.role)),
     days, dailyVals: days.map(d => byDay[d] || 0),
     undated: receipts.filter(r => jdnOf(r.date) == null), future: receipts.filter(r => { const d = jdnOf(r.date); return d != null && d > TODAY_JDN; }),
@@ -1637,7 +1647,7 @@ function buildTiles(M, t) {
     cfg: () => {
       const o = baseOpts(t, { horizontal: true, stacked: true, millions: true, money: true, labels: true, labelFmt: m1, grace: '22%', blur: 8 });
       o.plugins.tooltip.callbacks.title = items => { const x = tf[items[0].dataIndex]; return `${x.group || ''} · ${x.attendance || ''} — جمع ${full(tariffTotal(x))}`; };
-      return { type: 'bar', data: { labels: tf.map(x => `${x.group || ''} · ${(same(x.attendance, 'یک‌روزدرمیان') ? 'یک‌درمیان' : x.attendance || '')}`), datasets: [
+      return { type: 'bar', data: { labels: tf.map(x => `${x.group || ''} · ${(same(x.attendance, 'یک‌روزدرمیان') ? 'یک‌درمیان' : x.attendance || '')}${isMonthly(x) ? ' (ماهانه)' : ''}`), datasets: [
         barDs('نقدی', tf.map(x => +x.cash || 0), C[0], C[0], { stack: 's', borderRadius: 3 }), barDs('چک اول', tf.map(x => +x.check1 || 0), C[1], C[1], { stack: 's', borderRadius: 3 }), barDs('چک دوم', tf.map(x => +x.check2 || 0), C[2], C[2], { stack: 's', borderRadius: 3 })] }, options: o };
     } });
   const hasCosts = M.salByM.some(v => v) || M.expByM.some(v => v);
@@ -1677,7 +1687,7 @@ function drawTiles(defs, prefix) {
 function kpiHtml(M, C) {
   const u = s => s.replace(/ (میلیون|میلیارد|هزار)$/, '<small>$1</small>');
   return `<div class="kpis">
-    <a class="kpi" href="#children" style="--k:${C[0]}"><div class="l"><i></i>کودکان فعال</div><div class="v">${faNum(M.active.length)}</div><div class="s">${ATT.map((a, i) => i < 2 || M.att[i] ? `${faNum(M.att[i])} ${esc(a)}` : '').filter(Boolean).join(' · ')}</div></a>
+    <a class="kpi" href="#children" style="--k:${C[0]}"><div class="l"><i></i>کودکان فعال</div><div class="v">${faNum(M.active.length)}</div><div class="s">${M.atts.map((a, i) => `${faNum(M.att[i])} ${esc(a)}`).join(' · ')}</div></a>
     <a class="kpi" href="#staff" style="--k:${C[3]}"><div class="l"><i></i>پرسنل فعال</div><div class="v">${faNum(M.staffActive.length)}</div><div class="s">${M.roles.slice(0, 2).map(r => `${faNum(M.staffActive.filter(s => same(s.role, r)).length)} ${esc(r)}`).join(' · ') || '—'}</div></a>
     <a class="kpi" href="#tariffs" style="--k:${C[1]}"><div class="l"><i></i>تعهد شهریه</div><div class="v">${u(money(M.tot.expected))}</div><div class="s">${M.noTariff ? `${faNum(M.noTariff)} کودک بدون تعرفه` : 'تومان · طبق تعرفه و توافق'}</div></a>
     <a class="kpi" href="#payments" style="--k:${C[0]}"><div class="l"><i></i>شهریه دریافت‌شده</div><div class="v">${u(money(M.tot.collected))}</div><div class="s">${pctText(M.tot.collected, M.tot.expected)} از تعهد · امروز ${M.todayTuition ? money(M.todayTuition) : '۰'}</div></a>
@@ -1813,7 +1823,7 @@ function childFinanceHtml(c) {
   return `<div class="fin">
       <div><span>تعهد شهریه</span><b>${full(f.expected)}</b></div><div><span>دریافت‌شده</span><b>${full(f.received)}</b></div>
       <div><span>در قالب چک/قسط</span><b>${full(f.scheduled)}</b></div><div><span>مانده بدون برنامه</span><b>${full(f.unscheduled)}</b></div></div>
-    <p class="sub">${isExempt(c) ? 'این کودک معاف از شهریه است.' : isPayg(c) ? 'شهریه روزشمار است و پایان هر ماه دریافت می‌شود.' : c.agreedFee != null ? `شهریه‌ی توافقی ثبت شده است${t ? ` (تعرفه: ${full(tariffTotal(t))})` : ''}.` : t ? `طبق تعرفه‌ی ${esc(t.group)} ${esc(t.attendance)}: نقدی ${full(t.cash)} + چک ${full(t.check1)} + چک ${full(t.check2)}` : 'برای این گروه سنی و نوع حضور تعرفه‌ای تعریف نشده است.'}</p>
+    <p class="sub">${isExempt(c) ? 'این کودک معاف از شهریه است.' : isPayg(c) ? 'شهریه روزشمار است و پایان هر ماه دریافت می‌شود.' : c.agreedFee != null ? `شهریه‌ی توافقی ثبت شده است${t ? ` (تعرفه: ${full(tariffTotal(t))})` : ''}.` : isMonthly(t) ? `طبق تعرفه‌ی ماهانه‌ی ${esc(t.attendance)}: ماهی ${full(tariffTotal(t))} × ${faNum(monthsIn(c))} ماه` : t ? `طبق تعرفه‌ی ${esc(t.group)} ${esc(t.attendance)}: نقدی ${full(t.cash)} + چک ${full(t.check1)} + چک ${full(t.check2)}` : 'برای این گروه سنی و نوع حضور تعرفه‌ای تعریف نشده است.'}</p>
     <div class="related"><h4>دریافت‌ها <button class="btn sm" type="button" data-add-for="payments:${esc(c.id)}">+ ثبت دریافت</button></h4>
       ${pays.length ? `<div class="tbl-scroll"><table><tbody>${pays.map(p => `<tr data-open="payments:${esc(p.id)}"><td class="num">${p.date ? esc(faDigits(p.date)) : '<span class="muted">بدون تاریخ</span>'}</td><td>${esc(p.category || '')}</td><td>${esc(p.for || '')}</td><td>${esc(p.method || '')}</td><td class="num">${full(p.amount)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">دریافتی ثبت نشده است.</p>'}</div>
     <div class="related"><h4>چک‌ها و اقساط <button class="btn sm" type="button" data-add-for="installments:${esc(c.id)}">+ ثبت چک یا قسط</button></h4>
@@ -2092,7 +2102,7 @@ const SVC = [
 ];
 /* afternoon-shift children and what each has paid */
 function shiftRows(M) {
-  return M.active.filter(c => same(c.attendance, PM_SHIFT)).map(c => {
+  return M.active.filter(isPM).map(c => {
     const pays = M.S.payments.filter(p => p.childId === c.id);
     return { c, pays, paid: sum(pays, p => p.amount), month: pays.some(p => payMonth(p) === curMonth()) };
   }).sort((a, b) => b.paid - a.paid || String(a.c.name).localeCompare(String(b.c.name), 'fa'));
@@ -2330,7 +2340,7 @@ function openStatement(id, back) {
     const ls = L.by[b], si = SVC.findIndex(x => x.k === b), has = si >= 0 && SVC[si].has(c);
     if (!ls.length && b !== 'شهریه' && !has) return '';
     let note = '';
-    if (b === 'شهریه') note = isExempt(c) ? 'معاف از شهریه' : isPayg(c) ? 'روزشمار؛ پایان هر ماه دریافت می‌شود' : `تعهد ${full(f.expected)} · پرداخت‌شده ${full(f.received)} · <b>مانده ${full(f.remaining)}</b>`;
+    if (b === 'شهریه') note = isExempt(c) ? 'معاف از شهریه' : isPayg(c) ? 'روزشمار؛ پایان هر ماه دریافت می‌شود' : `${isMonthly(tariffFor(c)) && c.agreedFee == null ? `ماهانه ${full(tariffTotal(tariffFor(c)))} × ${faNum(monthsIn(c))} ماه · ` : ''}تعهد ${full(f.expected)} · پرداخت‌شده ${full(f.received)} · <b>مانده ${full(f.remaining)}</b>`;
     else if (b === 'صبحانه و چاشت' && has) note = `${esc(mealOf(c))} · ${L.mealDue ? pill('warn', `${mon} پرداخت نشده`, '!') : pill('good', `${mon} پرداخت شد`, '✓')}`;
     else if (has && !ls.length) note = pill('warn', 'پرداختی ثبت نشده', '!');
     return `<section class="st-sec"><h3><span>${esc(label(b))}</span><span class="num">${full(L.paid[b])} تومان</span><small>${note}</small></h3>
@@ -2340,7 +2350,7 @@ function openStatement(id, back) {
   $('#modal-root').innerHTML = `<div class="modal-bg" data-close-bg><div class="modal stmt" role="dialog" aria-modal="true" aria-labelledby="st-title" data-stmt-id="${esc(c.id)}">
     <button type="button" class="close-x" data-close aria-label="بستن" title="بستن (Esc)">✕</button>
     <h2 id="st-title">حساب ${esc(c.name)}</h2>
-    <p class="sub">${esc(clsOf(c))} · ${esc(c.group || '')} ${esc(c.attendance || '')} · ${esc(c.payMode || '')}${isActive(c) ? '' : ` · ${esc(c.status || 'غیرفعال')}`}</p>
+    <p class="sub">${esc(clsOf(c))} · ${esc(c.group || '')} ${esc(c.attendance || '')}${c.payMode ? ` · ${esc(c.payMode)}` : ''}${c.start ? ` · ورود ${esc(jHuman(c.start))}` : ''}${isActive(c) ? '' : ` · ${esc(c.status || 'غیرفعال')}`}</p>
     ${c.notes ? `<p class="st-notes"><b>توضیحات:</b> ${esc(c.notes)}</p>` : ''}
     <p class="st-summary">${summary}</p>
     <div class="rp-cards">
